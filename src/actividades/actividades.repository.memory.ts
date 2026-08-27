@@ -1,10 +1,11 @@
 import * as crypto from 'crypto';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ActividadStatus } from './enums/actividad-status.enum';
 import { OperativoSubtipo } from './enums/operativo-subtipo.enum';
 import { Turno } from './enums/turno.enum';
 import { Actividad, ActividadesRepository, Pagina, GestorStats, BarrioStats } from './actividades.repository';
 import { CreateActividadInput, UpdateActividadInput, ListFilters } from './actividades.types';
+import { BARRIOS } from '../catalogos/barrio.enum';
 
 export class InMemoryActividadesRepository implements ActividadesRepository {
   protected readonly filas: Actividad[] = [];
@@ -59,73 +60,172 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     return this.paginar(this.filas.filter((f) => f.createdByUserId === userId), filters);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async patch(id: string, userId: string, role: string, dto: UpdateActividadInput): Promise<Actividad> {
-    throw new Error('no implementado');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listPending(filters?: ListFilters): Promise<Pagina> {
-    throw new Error('no implementado');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listAll(filters: ListFilters): Promise<Pagina> {
-    throw new Error('no implementado');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listAllIds(filters: ListFilters): Promise<string[]> {
-    throw new Error('no implementado');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listValidatedByUser(validatorUserId: string, filters?: ListFilters): Promise<Pagina> {
-    throw new Error('no implementado');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listPublicadas(filters?: ListFilters): Promise<Pagina> {
-    throw new Error('no implementado');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async send(id: string, userId: string, role?: string): Promise<Actividad> {
-    throw new Error('no implementado');
+    const fila = this.buscar(id);
+    if (role !== 'ADMIN' && fila.createdByUserId !== userId) {
+      throw new ForbiddenException('La actividad no es tuya');
+    }
+    if (fila.status === ActividadStatus.PUBLICADA) {
+      throw new BadRequestException(
+        'La actividad ya esta publicada — editarla no la reenvia a validacion',
+      );
+    }
+    fila.status = ActividadStatus.ENVIADA;
+    fila.validationNotes = null;
+    fila.validatorUserId = null;
+    fila.validatedAt = null;
+    fila.updatedAt = new Date().toISOString();
+    return this.clonar(fila);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async approve(id: string, validatorUserId: string, notes?: string, selectedPhotos?: string[]): Promise<Actividad> {
-    throw new Error('no implementado');
+  // Aprobar PUBLICA directo. El estado APROBADA existe en el enum por
+  // compatibilidad con datos historicos del hub, pero este flujo no lo usa.
+  async approve(
+    id: string,
+    validatorUserId: string,
+    notes?: string,
+    selectedPhotos?: string[],
+  ): Promise<Actividad> {
+    const fila = this.buscar(id);
+    const ahora = new Date().toISOString();
+    fila.status = ActividadStatus.PUBLICADA;
+    fila.validatorUserId = validatorUserId;
+    fila.validatedAt = ahora;
+    fila.validationNotes = notes ?? null;
+    fila.publishedAt = ahora;
+    if (Array.isArray(selectedPhotos)) fila.photos = selectedPhotos;
+    fila.updatedAt = ahora;
+    return this.clonar(fila);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async reject(id: string, validatorUserId: string, notes?: string): Promise<Actividad> {
-    throw new Error('no implementado');
+    const fila = this.buscar(id);
+    const ahora = new Date().toISOString();
+    fila.status = ActividadStatus.RECHAZADA;
+    fila.validatorUserId = validatorUserId;
+    fila.validatedAt = ahora;
+    fila.validationNotes = notes ?? null;
+    fila.updatedAt = ahora;
+    return this.clonar(fila);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async patch(
+    id: string,
+    userId: string,
+    role: string,
+    dto: UpdateActividadInput,
+  ): Promise<Actividad> {
+    const fila = this.buscar(id);
+
+    if (role === 'GESTOR_ESPACIO_PUBLICO') {
+      const esDueno = fila.createdByUserId === userId;
+      if (!(fila.status === ActividadStatus.RECHAZADA && esDueno)) {
+        throw new ForbiddenException('Solo puedes editar tus actividades rechazadas');
+      }
+    } else if (role === 'VALIDADOR_ESPACIO_PUBLICO') {
+      if (fila.status !== ActividadStatus.ENVIADA) {
+        throw new ForbiddenException('Solo puedes editar actividades en estado ENVIADA');
+      }
+    }
+
+    if (dto.createdByUserId && dto.createdByUserId !== fila.createdByUserId && role !== 'ADMIN') {
+      throw new BadRequestException('Solo el administrador puede cambiar el gestor creador');
+    }
+
+    // El frontend manda las fechas como string ISO. Castear ANTES de mezclar es
+    // lo que evita el error `toISOString is not a function` al persistir.
+    const { dateTime, ...resto } = dto;
+    Object.assign(fila, resto);
+    if (dateTime) fila.dateTime = new Date(dateTime).toISOString();
+    fila.updatedAt = new Date().toISOString();
+    return this.clonar(fila);
+  }
+
+  async listPending(filters?: ListFilters): Promise<Pagina> {
+    return this.paginar(this.filas.filter((f) => f.status === ActividadStatus.ENVIADA), filters);
+  }
+
+  async listPublicadas(filters?: ListFilters): Promise<Pagina> {
+    return this.paginar(this.filas.filter((f) => f.status === ActividadStatus.PUBLICADA), filters);
+  }
+
+  async listAll(filters: ListFilters): Promise<Pagina> {
+    let filas = [...this.filas];
+    if (filters.status) filas = filas.filter((f) => f.status === filters.status);
+    if (filters.barrio) filas = filas.filter((f) => f.barrio === filters.barrio);
+    if (filters.gestor) filas = filas.filter((f) => f.createdByUserId === filters.gestor);
+    if (filters.desde) filas = filas.filter((f) => f.dateTime >= filters.desde!);
+    if (filters.hasta) filas = filas.filter((f) => f.dateTime <= filters.hasta!);
+    return this.paginar(filas, filters);
+  }
+
+  async listAllIds(filters: ListFilters): Promise<string[]> {
+    const { data } = await this.listAll({ ...filters, limit: undefined, offset: undefined });
+    return data.map((f) => f.id);
+  }
+
+  async listValidatedByUser(validatorUserId: string, filters?: ListFilters): Promise<Pagina> {
+    return this.paginar(
+      this.filas.filter((f) => f.validatorUserId === validatorUserId),
+      filters,
+    );
+  }
+
   async delete(id: string): Promise<void> {
-    throw new Error('no implementado');
+    const i = this.filas.findIndex((f) => f.id === id);
+    if (i === -1) throw new NotFoundException('Actividad no encontrada');
+    this.filas.splice(i, 1);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async bulkDelete(ids: string[]): Promise<void> {
-    throw new Error('no implementado');
+    for (const id of ids) {
+      const i = this.filas.findIndex((f) => f.id === id);
+      if (i !== -1) this.filas.splice(i, 1);
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getMyStats(userId: string, filters?: ListFilters): Promise<{ enviada: number; aprobada: number; rechazada: number }> {
-    throw new Error('no implementado');
+    const propias = this.filas.filter((f) => f.createdByUserId === userId);
+    return {
+      enviada: propias.filter((f) => f.status === ActividadStatus.ENVIADA).length,
+      aprobada: propias.filter((f) => f.status === ActividadStatus.PUBLICADA).length,
+      rechazada: propias.filter((f) => f.status === ActividadStatus.RECHAZADA).length,
+    };
   }
 
   async getGestoresStats(): Promise<GestorStats[]> {
-    throw new Error('no implementado');
+    const porGestor = new Map<string, Actividad[]>();
+    for (const f of this.filas) {
+      const lista = porGestor.get(f.createdByUserId) ?? [];
+      lista.push(f);
+      porGestor.set(f.createdByUserId, lista);
+    }
+    return Array.from(porGestor.entries()).map(([id, filas]) => ({
+      id,
+      totalActividades: filas.length,
+      porEstado: filas.reduce<Record<string, number>>((acc, f) => {
+        acc[f.status] = (acc[f.status] ?? 0) + 1;
+        return acc;
+      }, {}),
+    }));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getBarriosStats(filters?: ListFilters): Promise<{ cubiertas: BarrioStats[]; descuidadas: string[] }> {
-    throw new Error('no implementado');
+    const porBarrio = new Map<string, Actividad[]>();
+    for (const f of this.filas) {
+      const lista = porBarrio.get(f.barrio) ?? [];
+      lista.push(f);
+      porBarrio.set(f.barrio, lista);
+    }
+    const cubiertas = Array.from(porBarrio.entries()).map(([barrio, filas]) => ({
+      barrio,
+      totalActividades: filas.length,
+      ultimaActividad: filas.map((f) => f.dateTime).sort().at(-1) ?? null,
+    }));
+    const descuidadas = BARRIOS.filter((b) => !porBarrio.has(b));
+    return { cubiertas, descuidadas };
   }
 
   protected buscar(id: string): Actividad {
