@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: espaciopublico-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-espaciopublico}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-espaciopublico}
+      POSTGRES_DB: ${DB_DATABASE:-espaciopublico}
+    ports:
+      - '5433:5432'
+    volumes:
+      - espaciopublico-db-data:/var/lib/postgresql/data
+
+volumes:
+  espaciopublico-db-data:
