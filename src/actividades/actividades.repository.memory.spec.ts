@@ -51,4 +51,19 @@ describe('InMemoryActividadesRepository', () => {
     expect(pagina.total).toBe(1);
     expect(pagina.data[0].createdByUserId).toBe(GESTOR);
   });
+
+  it('mutar el array devuelto no corrompe la fila guardada', async () => {
+    const a = await repo.create(GESTOR, entrada());
+    a.photos.push('colada.jpg');
+    const releida = await repo.findById(a.id);
+    expect(releida.photos).toEqual([]);
+  });
+
+  it('mutar el array de entrada despues de crear no corrompe la fila guardada', async () => {
+    const fotos = ['original.jpg'];
+    const a = await repo.create(GESTOR, entrada({ photos: fotos }));
+    fotos.push('agregada-despues.jpg');
+    const releida = await repo.findById(a.id);
+    expect(releida.photos).toEqual(['original.jpg']);
+  });
 });

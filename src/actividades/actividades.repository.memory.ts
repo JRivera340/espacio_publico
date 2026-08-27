@@ -24,7 +24,7 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
       lat: data.lat,
       lng: data.lng,
       barrio: data.barrio,
-      photos: data.photos ?? [],
+      photos: [...(data.photos ?? [])],
       results: data.results,
       incautacionLicores: data.incautacionLicores ?? 0,
       incautacionArmasBlancas: data.incautacionArmasBlancas ?? 0,
@@ -34,25 +34,25 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
       actaOperativo: data.actaOperativo ?? null,
       actaPdfUrl: data.actaPdfUrl ?? null,
       entidadResponsable: data.entidadResponsable ?? null,
-      entidadesAcompanantes: data.entidadesAcompanantes ?? [],
+      entidadesAcompanantes: [...(data.entidadesAcompanantes ?? [])],
       isGroupOperativo: data.isGroupOperativo ?? false,
-      gestoresInvolucradosIds: data.gestoresInvolucradosIds ?? [],
+      gestoresInvolucradosIds: [...(data.gestoresInvolucradosIds ?? [])],
       validatorUserId: null,
       validatorName: null,
       validatedAt: null,
       validationNotes: null,
       publishedAt: null,
-      dynamicAnswers: data.dynamicAnswers ?? null,
+      dynamicAnswers: data.dynamicAnswers ? { ...data.dynamicAnswers } : null,
       categorySeq: this.filas.length + 1,
       createdAt: ahora,
       updatedAt: ahora,
     };
     this.filas.push(actividad);
-    return { ...actividad };
+    return this.clonar(actividad);
   }
 
   async findById(id: string): Promise<Actividad> {
-    return { ...this.buscar(id) };
+    return this.clonar(this.buscar(id));
   }
 
   async listMine(userId: string, filters?: ListFilters): Promise<Pagina> {
@@ -138,8 +138,20 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     const offset = filters?.offset ?? 0;
     const limit = filters?.limit ?? filas.length;
     return {
-      data: filas.slice(offset, offset + limit).map((f) => ({ ...f })),
+      data: filas.slice(offset, offset + limit).map((f) => this.clonar(f)),
       total: filas.length,
+    };
+  }
+
+  // Clon de una fila para que quien la reciba no pueda mutar el estado
+  // interno del repositorio a traves de sus arrays u objetos anidados.
+  private clonar(f: Actividad): Actividad {
+    return {
+      ...f,
+      photos: [...f.photos],
+      entidadesAcompanantes: [...f.entidadesAcompanantes],
+      gestoresInvolucradosIds: [...f.gestoresInvolucradosIds],
+      dynamicAnswers: f.dynamicAnswers ? { ...f.dynamicAnswers } : f.dynamicAnswers,
     };
   }
 }
