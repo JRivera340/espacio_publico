@@ -62,11 +62,41 @@ describe('HandoffController', () => {
     expect(res.redirect).toHaveBeenCalledWith(302, `${FRONTEND}/handoff?error=invalid_token`);
   });
 
-  it('nunca escribe el token en el log', () => {
+  it('nunca escribe el token en el log cuando la firma no corresponde (rama invalid_token via warn)', () => {
+    const ajeno = new JwtService({ secret: 'otro-secreto' }).sign(
+      { sub: '1', email: 'x@ejemplo.com', role: 'ADMIN' },
+      { secret: 'otro-secreto' },
+    );
+    const warn = jest.spyOn(controller['logger'], 'warn').mockImplementation(() => undefined);
+    const error = jest.spyOn(controller['logger'], 'error').mockImplementation(() => undefined);
+    controller.handoff(ajeno, respuestaFalsa());
+    expect(warn).toHaveBeenCalled();
+    const escrito = [...warn.mock.calls, ...error.mock.calls].flat().join(' ');
+    expect(escrito).not.toContain(ajeno);
+  });
+
+  it('nunca escribe el token en el log cuando el token expiro (rama invalid_token via warn)', () => {
+    const vencido = jwtService.sign(
+      { sub: '1', email: 'x@ejemplo.com', role: 'ADMIN' },
+      { secret: SECRETO, expiresIn: '-1h' },
+    );
+    const warn = jest.spyOn(controller['logger'], 'warn').mockImplementation(() => undefined);
+    const error = jest.spyOn(controller['logger'], 'error').mockImplementation(() => undefined);
+    controller.handoff(vencido, respuestaFalsa());
+    expect(warn).toHaveBeenCalled();
+    const escrito = [...warn.mock.calls, ...error.mock.calls].flat().join(' ');
+    expect(escrito).not.toContain(vencido);
+  });
+
+  it('nunca escribe el token en el log cuando falla algo inesperado (rama server_error via error)', () => {
     const token = jwtService.sign({ sub: '1', email: 'x@ejemplo.com', role: 'ADMIN' }, { secret: SECRETO });
+    // Rompe getEnv() a proposito para forzar el catch externo (server_error),
+    // sin tocar la rama de verificacion del jwt.
+    delete (process.env as any).DB_HOST;
     const warn = jest.spyOn(controller['logger'], 'warn').mockImplementation(() => undefined);
     const error = jest.spyOn(controller['logger'], 'error').mockImplementation(() => undefined);
     controller.handoff(token, respuestaFalsa());
+    expect(error).toHaveBeenCalled();
     const escrito = [...warn.mock.calls, ...error.mock.calls].flat().join(' ');
     expect(escrito).not.toContain(token);
   });
