@@ -3,10 +3,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { ActividadesModule } from './actividades/actividades.module';
+import { UsersProxyModule } from './users-proxy/users-proxy.module';
+import { CatalogosModule } from './catalogos/catalogos.module';
 import { typeOrmConfig } from './config/typeorm.config';
 
 @Module({
-  imports: [TypeOrmModule.forRootAsync(typeOrmConfig), AuthModule, ActividadesModule],
+  imports: [
+    TypeOrmModule.forRootAsync(typeOrmConfig),
+    AuthModule,
+    ActividadesModule,
+    UsersProxyModule,
+    CatalogosModule,
+  ],
   controllers: [AppController],
 })
 export class AppModule {}
