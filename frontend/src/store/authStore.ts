@@ -6,12 +6,9 @@ interface AuthStore {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  loading: boolean;
-  initialized: boolean;
 
   login: (token: string, user: User) => void;
   logout: () => void;
-  loadUser: () => void;
   clearAuth: () => void;
 }
 
@@ -21,48 +18,31 @@ const getInitialState = () => {
     const token = authService.getToken();
     const user = authService.getCurrentUser();
     if (token && user) {
-      return { user, token, isAuthenticated: true, loading: false, initialized: true };
+      return { user, token, isAuthenticated: true };
     }
   } catch (e) {
     console.error('Error rehydrating auth state:', e);
   }
-  return { user: null, token: null, isAuthenticated: false, loading: false, initialized: true };
+  return { user: null, token: null, isAuthenticated: false };
 };
 
 const initialState = getInitialState();
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   ...initialState,
 
   login: (token, user) => {
     authService.saveSession(token, user);
-    set({ user, token, isAuthenticated: true, loading: false, initialized: true });
+    set({ user, token, isAuthenticated: true });
   },
 
-  logout: () => {
-    authService.clearSession();
-    set({ user: null, token: null, isAuthenticated: false, loading: false });
-  },
+  // logout (salida voluntaria via cerrarSesion) y clearAuth (evento de sesion
+  // vencida) limpian exactamente lo mismo. Se conservan como dos nombres
+  // porque describen intenciones distintas en quien los llama, pero comparten
+  // la unica implementacion de abajo para que no puedan desincronizarse si el
+  // estado gana un campo nuevo.
+  logout: () => get().clearAuth(),
 
-  // loadUser es idempotente y rapido (ya rehidratamos en init)
-  loadUser: () => {
-    try {
-      const token = authService.getToken();
-      const user = authService.getCurrentUser();
-
-      if (token && user) {
-        set({ user, token, isAuthenticated: true, loading: false, initialized: true });
-      } else {
-        set({ user: null, token: null, isAuthenticated: false, loading: false, initialized: true });
-      }
-    } catch (error) {
-      console.error('Error loading user:', error);
-      authService.clearSession();
-      set({ user: null, token: null, isAuthenticated: false, loading: false, initialized: true });
-    }
-  },
-
-  // Limpieza manual (usado por el evento session-expired)
   clearAuth: () => {
     authService.clearSession();
     set({ user: null, token: null, isAuthenticated: false });
