@@ -71,6 +71,59 @@ describe('ReporteService', () => {
   it('no rompe con una lista vacia', () => {
     expect(() => service.generarXlsx([], 'https://ep.example.com')).not.toThrow();
   });
+
+  it('mapea fecha, turno, tipo, resultados, ubicacion y las cuatro cifras sin cruzarlas', () => {
+    const fila = primeraFila(
+      service.generarXlsx(
+        [
+          actividad({
+            dateTime: '2026-08-20T14:00:00.000Z',
+            shift: Turno.NOCTURNO,
+            activityType: 'ESPACIO_PUBLICO - 1801',
+            results: 'Recuperacion de anden',
+            lat: 4.6,
+            lng: -74.07,
+            personasSensibilizadas: 11,
+            personasTransladadas: 22,
+            incautacionLicores: 33,
+            incautacionArmasBlancas: 44,
+          }),
+        ],
+        'https://ep.example.com',
+      ),
+    );
+    expect(fila['Fecha']).toBe('2026-08-20T14:00:00.000Z');
+    expect(fila['Turno']).toBe('NOCTURNO');
+    expect(fila['Tipo']).toBe('ESPACIO_PUBLICO - 1801');
+    expect(fila['Resultados']).toBe('Recuperacion de anden');
+    expect(fila['Latitud']).toBe(4.6);
+    expect(fila['Longitud']).toBe(-74.07);
+    expect(fila['Personas sensibilizadas']).toBe(11);
+    expect(fila['Personas trasladadas']).toBe(22);
+    expect(fila['Incautacion licores']).toBe(33);
+    expect(fila['Incautacion armas blancas']).toBe(44);
+  });
+
+  it('une varias entidades acompanantes por coma en una sola celda', () => {
+    const fila = primeraFila(
+      service.generarXlsx(
+        [actividad({ entidadesAcompanantes: ['Policía Nacional', 'Alcaldia Local', 'Bomberos'] })],
+        'https://ep.example.com',
+      ),
+    );
+    expect(fila['Entidades acompanantes']).toBe('Policía Nacional, Alcaldia Local, Bomberos');
+  });
+
+  it('deja vacias Entidad responsable y Operativos 1801 cuando son nulas, en vez de "null"', () => {
+    const fila = primeraFila(
+      service.generarXlsx(
+        [actividad({ entidadResponsable: null, num_1801: null })],
+        'https://ep.example.com',
+      ),
+    );
+    expect(fila['Entidad responsable']).toBe('');
+    expect(fila['Operativos 1801']).toBe('');
+  });
 });
 
 // El controller no puede dejar que el cliente elija el dominio del enlace: el
