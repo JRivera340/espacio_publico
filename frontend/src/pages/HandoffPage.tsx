@@ -54,6 +54,13 @@ export const HandoffPage: React.FC = () => {
       return;
     }
 
+    // El token es una credencial: sirve para el hub, para ambiental y para
+    // este modulo. Se limpia del fragmento apenas se extrae, antes de
+    // intentar decodificarlo, para que no quede en la barra de direcciones
+    // ni en el historial del navegador sin importar como termine lo que
+    // sigue (payload malformado, JSON invalido, etc).
+    history.replaceState(null, '', window.location.pathname);
+
     const payload = decodeJwtPayload(token);
     if (!payload) {
       setStatus('error');
@@ -71,9 +78,6 @@ export const HandoffPage: React.FC = () => {
     };
 
     login(token, user);
-
-    // Limpia el fragmento de la URL - no debe quedar en el historial del navegador.
-    history.replaceState(null, '', window.location.pathname);
 
     const destino = RUTA_POR_ROL[payload.role];
     if (destino) {
