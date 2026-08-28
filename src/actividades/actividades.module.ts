@@ -6,9 +6,10 @@ import { ActividadesService } from './actividades.service';
 import { ACTIVIDADES_REPOSITORY } from './actividades.tokens';
 import { TypeOrmActividadesRepository } from './actividades.repository.typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { ReporteModule } from '../reporte/reporte.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ActividadEntity]), AuthModule],
+  imports: [TypeOrmModule.forFeature([ActividadEntity]), AuthModule, ReporteModule],
   controllers: [ActividadesController],
   providers: [
     ActividadesService,

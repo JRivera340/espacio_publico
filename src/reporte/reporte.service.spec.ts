@@ -1,0 +1,97 @@
+import * as XLSX from 'xlsx';
+import { ReporteService } from './reporte.service';
+import { ActividadStatus } from '../actividades/enums/actividad-status.enum';
+import { OperativoSubtipo } from '../actividades/enums/operativo-subtipo.enum';
+import { Turno } from '../actividades/enums/turno.enum';
+import type { Actividad } from '../actividades/actividades.repository';
+import { ActividadesController } from '../actividades/actividades.controller';
+
+function actividad(over: Partial<Actividad> = {}): Actividad {
+  return {
+    id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    createdByUserId: 'gestor-1',
+    status: ActividadStatus.PUBLICADA,
+    dateTime: '2026-08-20T14:00:00.000Z',
+    activityType: 'ESPACIO_PUBLICO - 1801',
+    operativoSubtipo: OperativoSubtipo.ESPACIO_PUBLICO_1801,
+    shift: Turno.DIURNO,
+    lat: 4.6,
+    lng: -74.07,
+    barrio: 'LA MACARENA',
+    photos: [],
+    results: 'Recuperacion de anden',
+    incautacionLicores: 0,
+    incautacionArmasBlancas: 0,
+    personasTransladadas: 0,
+    personasSensibilizadas: 12,
+    entidadesAcompanantes: ['Policía Nacional'],
+    isGroupOperativo: false,
+    gestoresInvolucradosIds: [],
+    categorySeq: 7,
+    createdAt: '2026-08-20T13:00:00.000Z',
+    updatedAt: '2026-08-20T13:00:00.000Z',
+    ...over,
+  } as Actividad;
+}
+
+function primeraFila(buffer: Buffer) {
+  const libro = XLSX.read(buffer, { type: 'buffer' });
+  const hoja = libro.Sheets[libro.SheetNames[0]];
+  return XLSX.utils.sheet_to_json<Record<string, any>>(hoja)[0];
+}
+
+describe('ReporteService', () => {
+  const service = new ReporteService();
+
+  it('genera una fila por actividad con el codigo visible', () => {
+    const fila = primeraFila(service.generarXlsx([actividad()], 'https://ep.example.com'));
+    expect(fila['Codigo']).toBe('EP-07');
+    expect(fila['Barrio']).toBe('LA MACARENA');
+    expect(fila['Estado']).toBe('PUBLICADA');
+  });
+
+  it('incluye el enlace publico construido con la url recibida', () => {
+    const fila = primeraFila(service.generarXlsx([actividad()], 'https://ep.example.com/'));
+    expect(fila['Enlace']).toBe(
+      'https://ep.example.com/public/actividad/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    );
+  });
+
+  it('aplana las cifras de dynamicAnswers en columnas propias', () => {
+    const fila = primeraFila(
+      service.generarXlsx(
+        [actividad({ dynamicAnswers: { m2RecuperadosEspacioPublico: 340, cambuches: 3 } })],
+        'https://ep.example.com',
+      ),
+    );
+    expect(fila['m2RecuperadosEspacioPublico']).toBe(340);
+    expect(fila['cambuches']).toBe(3);
+  });
+
+  it('no rompe con una lista vacia', () => {
+    expect(() => service.generarXlsx([], 'https://ep.example.com')).not.toThrow();
+  });
+});
+
+// El controller no puede dejar que el cliente elija el dominio del enlace: el
+// XLSX lleva sello institucional y un query param manipulado permitiria armar
+// un archivo oficial que apunta a un dominio ajeno.
+describe('ActividadesController.reportXlsx', () => {
+  it('toma la url del entorno y no del query param del cliente', async () => {
+    process.env.JWT_SECRET = 'secreto';
+    process.env.DB_HOST = 'localhost';
+    process.env.DB_USERNAME = 'u';
+    process.env.DB_PASSWORD = 'p';
+    process.env.DB_DATABASE = 'd';
+    process.env.FRONTEND_URL = 'https://espaciopublico.bogotaneidapp.com';
+
+    const generarXlsx = jest.fn().mockReturnValue(Buffer.from('x'));
+    const service = { listarTodas: jest.fn().mockResolvedValue({ data: [], total: 0 }) } as any;
+    const controller = new ActividadesController(service, { generarXlsx } as any);
+    const res = { setHeader: jest.fn(), send: jest.fn() } as any;
+
+    await controller.reportXlsx({ frontendUrl: 'https://sitio-atacante.example' } as any, res);
+
+    expect(generarXlsx).toHaveBeenCalledWith([], 'https://espaciopublico.bogotaneidapp.com');
+  });
+});

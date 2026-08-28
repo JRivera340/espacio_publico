@@ -1,15 +1,17 @@
 import {
-  BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards,
+  BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { ActividadesService } from './actividades.service';
+import { ReporteService } from '../reporte/reporte.service';
 import { CreateActividadDto } from './dto/create-actividad.dto';
 import { UpdateActividadDto } from './dto/update-actividad.dto';
 import { ListFilters } from './actividades.types';
+import { getEnv } from '../config/env';
 
 type AuthedRequest = Request & {
   user: { userId: string; email: string; role: Role };
@@ -48,7 +50,10 @@ export function parseFilters(query: Record<string, any>): ListFilters {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('actividades')
 export class ActividadesController {
-  constructor(private readonly service: ActividadesService) {}
+  constructor(
+    private readonly service: ActividadesService,
+    private readonly reporteService: ReporteService,
+  ) {}
 
   @Post()
   @Roles(Role.GESTOR_ESPACIO_PUBLICO)
@@ -102,6 +107,19 @@ export class ActividadesController {
   @Roles(Role.VALIDADOR_ESPACIO_PUBLICO, Role.ADMIN)
   listarTodas(@Query() query: Record<string, any>) {
     return this.service.listarTodas(parseFilters(query));
+  }
+
+  @Get('report-xlsx')
+  @Roles(Role.VALIDADOR_ESPACIO_PUBLICO, Role.ADMIN)
+  async reportXlsx(@Query() query: Record<string, any>, @Res() res: Response) {
+    const { data } = await this.service.listarTodas(parseFilters(query));
+    // La url del enlace publico sale siempre de la variable de entorno: nunca
+    // del query param del cliente, que podria apuntar a un dominio ajeno en
+    // un archivo con sello institucional.
+    const buffer = this.reporteService.generarXlsx(data, getEnv().FRONTEND_URL);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="espacio-publico.xlsx"');
+    res.send(buffer);
   }
 
   @Get(':id')
