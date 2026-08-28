@@ -7,7 +7,9 @@ import App from './App';
 // en la Task 4 las va a tener, y asi este test no hay que reescribirlo.
 describe('App', () => {
   it('monta sin romper', () => {
+    // Sin hash ni sesion, la raiz redirige a /handoff y ese termina en la
+    // pantalla de error: no hay token que procesar.
     render(<MemoryRouter><App /></MemoryRouter>);
-    expect(screen.getByText('Espacio Publico')).toBeDefined();
+    expect(screen.getByText(/no se pudo iniciar sesion/i)).toBeDefined();
   });
 });
