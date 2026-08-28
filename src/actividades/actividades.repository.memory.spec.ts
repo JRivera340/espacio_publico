@@ -176,4 +176,88 @@ describe('InMemoryActividadesRepository', () => {
       expect(reasignada.createdByUserId).toBe('otro');
     });
   });
+
+  describe('filtros de ListFilters', () => {
+    const OTRO_GESTOR = '00000000-0000-0000-0000-000000000009';
+
+    it('listAll filtra por barrio', async () => {
+      await repo.create(GESTOR, entrada({ barrio: 'LA MACARENA' }));
+      await repo.create(GESTOR, entrada({ barrio: 'LAS CRUCES' }));
+      const pagina = await repo.listAll({ barrio: 'LA MACARENA' });
+      expect(pagina.total).toBe(1);
+      expect(pagina.data[0].barrio).toBe('LA MACARENA');
+    });
+
+    it('listAll filtra por gestor', async () => {
+      await repo.create(GESTOR, entrada());
+      await repo.create(OTRO_GESTOR, entrada());
+      const pagina = await repo.listAll({ gestor: GESTOR });
+      expect(pagina.total).toBe(1);
+      expect(pagina.data[0].createdByUserId).toBe(GESTOR);
+    });
+
+    it('listAll filtra por isNightShift', async () => {
+      await repo.create(GESTOR, entrada({ isNightShift: true }));
+      await repo.create(GESTOR, entrada({ isNightShift: false }));
+      const pagina = await repo.listAll({ isNightShift: true });
+      expect(pagina.total).toBe(1);
+      expect(pagina.data[0].isNightShift).toBe(true);
+    });
+
+    it('listAll filtra por rango desde/hasta', async () => {
+      await repo.create(GESTOR, entrada({ dateTime: '2026-08-10T14:00:00.000Z' }));
+      await repo.create(GESTOR, entrada({ dateTime: '2026-08-20T14:00:00.000Z' }));
+      await repo.create(GESTOR, entrada({ dateTime: '2026-08-30T14:00:00.000Z' }));
+      const pagina = await repo.listAll({ desde: '2026-08-15', hasta: '2026-08-25' });
+      expect(pagina.total).toBe(1);
+      expect(pagina.data[0].dateTime).toBe('2026-08-20T14:00:00.000Z');
+    });
+
+    it('listAll combina dos filtros a la vez', async () => {
+      await repo.create(GESTOR, entrada({ barrio: 'LA MACARENA', isNightShift: true }));
+      await repo.create(GESTOR, entrada({ barrio: 'LA MACARENA', isNightShift: false }));
+      await repo.create(GESTOR, entrada({ barrio: 'LAS CRUCES', isNightShift: true }));
+      const pagina = await repo.listAll({ barrio: 'LA MACARENA', isNightShift: true });
+      expect(pagina.total).toBe(1);
+      expect(pagina.data[0].barrio).toBe('LA MACARENA');
+      expect(pagina.data[0].isNightShift).toBe(true);
+    });
+
+    it('listPending, listPublicadas y listValidatedByUser respetan tambien el filtro de barrio', async () => {
+      const VALIDADOR = '00000000-0000-0000-0000-000000000002';
+      const enviadaMacarena = await repo.create(GESTOR, entrada({ barrio: 'LA MACARENA' }));
+      await repo.send(enviadaMacarena.id, GESTOR);
+      const enviadaCruces = await repo.create(GESTOR, entrada({ barrio: 'LAS CRUCES' }));
+      await repo.send(enviadaCruces.id, GESTOR);
+
+      const pendientes = await repo.listPending({ barrio: 'LA MACARENA' });
+      expect(pendientes.total).toBe(1);
+      expect(pendientes.data[0].barrio).toBe('LA MACARENA');
+
+      await repo.approve(enviadaCruces.id, VALIDADOR);
+      const publicadas = await repo.listPublicadas({ barrio: 'LAS CRUCES' });
+      expect(publicadas.total).toBe(1);
+
+      const validadas = await repo.listValidatedByUser(VALIDADOR, { barrio: 'LAS CRUCES' });
+      expect(validadas.total).toBe(1);
+      expect(validadas.data[0].barrio).toBe('LAS CRUCES');
+    });
+
+    it('listMine no deja ver actividades de otro gestor via el filtro gestor', async () => {
+      await repo.create(GESTOR, entrada());
+      await repo.create(OTRO_GESTOR, entrada());
+      const pagina = await repo.listMine(GESTOR, { gestor: OTRO_GESTOR });
+      expect(pagina.total).toBe(0);
+      expect(pagina.data).toEqual([]);
+    });
+
+    it('listMine sigue devolviendo lo propio cuando el filtro gestor coincide con el dueno', async () => {
+      await repo.create(GESTOR, entrada());
+      await repo.create(OTRO_GESTOR, entrada());
+      const pagina = await repo.listMine(GESTOR, { gestor: GESTOR });
+      expect(pagina.total).toBe(1);
+      expect(pagina.data[0].createdByUserId).toBe(GESTOR);
+    });
+  });
+
 });

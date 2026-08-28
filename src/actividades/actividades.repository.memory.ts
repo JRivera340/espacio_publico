@@ -56,8 +56,12 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     return this.clonar(this.buscar(id));
   }
 
+  // El filtro `gestor` de ListFilters no puede pisar la propiedad: si viene
+  // con un id distinto al dueno, la interseccion sobre la misma columna deja
+  // el resultado vacio, nunca las actividades de otro gestor.
   async listMine(userId: string, filters?: ListFilters): Promise<Pagina> {
-    return this.paginar(this.filas.filter((f) => f.createdByUserId === userId), filters);
+    const propias = this.filas.filter((f) => f.createdByUserId === userId);
+    return this.paginar(this.aplicarFiltros(propias, filters), filters);
   }
 
   async send(id: string, userId: string, role?: string): Promise<Actividad> {
@@ -142,21 +146,17 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
   }
 
   async listPending(filters?: ListFilters): Promise<Pagina> {
-    return this.paginar(this.filas.filter((f) => f.status === ActividadStatus.ENVIADA), filters);
+    const enviadas = this.filas.filter((f) => f.status === ActividadStatus.ENVIADA);
+    return this.paginar(this.aplicarFiltros(enviadas, filters), filters);
   }
 
   async listPublicadas(filters?: ListFilters): Promise<Pagina> {
-    return this.paginar(this.filas.filter((f) => f.status === ActividadStatus.PUBLICADA), filters);
+    const publicadas = this.filas.filter((f) => f.status === ActividadStatus.PUBLICADA);
+    return this.paginar(this.aplicarFiltros(publicadas, filters), filters);
   }
 
   async listAll(filters: ListFilters): Promise<Pagina> {
-    let filas = [...this.filas];
-    if (filters.status) filas = filas.filter((f) => f.status === filters.status);
-    if (filters.barrio) filas = filas.filter((f) => f.barrio === filters.barrio);
-    if (filters.gestor) filas = filas.filter((f) => f.createdByUserId === filters.gestor);
-    if (filters.desde) filas = filas.filter((f) => f.dateTime >= filters.desde!);
-    if (filters.hasta) filas = filas.filter((f) => f.dateTime <= filters.hasta!);
-    return this.paginar(filas, filters);
+    return this.paginar(this.aplicarFiltros(this.filas, filters), filters);
   }
 
   async listAllIds(filters: ListFilters): Promise<string[]> {
@@ -165,10 +165,8 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
   }
 
   async listValidatedByUser(validatorUserId: string, filters?: ListFilters): Promise<Pagina> {
-    return this.paginar(
-      this.filas.filter((f) => f.validatorUserId === validatorUserId),
-      filters,
-    );
+    const validadas = this.filas.filter((f) => f.validatorUserId === validatorUserId);
+    return this.paginar(this.aplicarFiltros(validadas, filters), filters);
   }
 
   async delete(id: string): Promise<void> {
@@ -226,6 +224,22 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     }));
     const descuidadas = BARRIOS.filter((b) => !porBarrio.has(b));
     return { cubiertas, descuidadas };
+  }
+
+  // Filtros comunes de ListFilters (status, barrio, gestor, isNightShift,
+  // desde/hasta). Se aplican igual en las seis lecturas que los reciben para
+  // no divergir del comportamiento de la implementacion TypeORM.
+  private aplicarFiltros(filas: Actividad[], filters?: ListFilters): Actividad[] {
+    let resultado = filas;
+    if (filters?.status) resultado = resultado.filter((f) => f.status === filters.status);
+    if (filters?.barrio) resultado = resultado.filter((f) => f.barrio === filters.barrio);
+    if (filters?.gestor) resultado = resultado.filter((f) => f.createdByUserId === filters.gestor);
+    if (filters?.isNightShift !== undefined) {
+      resultado = resultado.filter((f) => f.isNightShift === filters.isNightShift);
+    }
+    if (filters?.desde) resultado = resultado.filter((f) => f.dateTime >= filters.desde!);
+    if (filters?.hasta) resultado = resultado.filter((f) => f.dateTime <= filters.hasta!);
+    return resultado;
   }
 
   protected buscar(id: string): Actividad {

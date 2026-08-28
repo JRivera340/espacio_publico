@@ -130,11 +130,14 @@ export class TypeOrmActividadesRepository implements ActividadesRepository {
     return this.toActividad(saved);
   }
 
+  // El filtro `gestor` de ListFilters no puede pisar la propiedad: si viene
+  // con un id distinto al dueno, la interseccion sobre la misma columna deja
+  // el resultado vacio, nunca las actividades de otro gestor.
   async listMine(userId: string, filters?: ListFilters): Promise<Pagina> {
     const qb = this.repo
       .createQueryBuilder('a')
       .where('a.createdByUserId = :userId', { userId });
-    this.aplicarFiltrosFecha(qb, filters);
+    this.aplicarFiltrosComunes(qb, filters);
     qb.orderBy('a.dateTime', 'DESC');
     return this.ejecutarPagina(qb, filters);
   }
