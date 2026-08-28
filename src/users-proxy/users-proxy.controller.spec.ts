@@ -1,4 +1,4 @@
-import { HttpException } from '@nestjs/common';
+import { BadRequestException, HttpException } from '@nestjs/common';
 import { UsersProxyController } from './users-proxy.controller';
 
 describe('UsersProxyController', () => {
@@ -46,5 +46,66 @@ describe('UsersProxyController', () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) as any;
 
     await expect(controller.getGestores(req)).rejects.toMatchObject({ status: 502 });
+  });
+
+  it('getUserById reenvia al hub cuando el id es un uuid valido', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: '11111111-1111-1111-1111-111111111111', name: 'Ana' }),
+    });
+    global.fetch = fetchMock as any;
+
+    const resultado = await controller.getUserById(
+      '11111111-1111-1111-1111-111111111111',
+      req,
+    );
+
+    expect(resultado).toEqual({ id: '11111111-1111-1111-1111-111111111111', name: 'Ana' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://hub.example.com/api/users/11111111-1111-1111-1111-111111111111',
+      { headers: { Authorization: 'Bearer abc' } },
+    );
+  });
+
+  it('getUserById rechaza un intento de recorrido de ruta porcentaje-codificado sin llamar al hub', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as any;
+
+    await expect(controller.getUserById('..%2F..%2Fauth%2Flogin', req)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('getUserById rechaza un intento de recorrido de ruta ya decodificado sin llamar al hub', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as any;
+
+    await expect(controller.getUserById('../../auth/login', req)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('getUserById rechaza un id que no es uuid', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as any;
+
+    await expect(controller.getUserById('pepito', req)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('proxyToHub rechaza directamente un segmento con barra, sin llamar al hub', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as any;
+
+    const proxyToHub = (controller as any).proxyToHub.bind(controller);
+
+    await expect(proxyToHub(['../../auth/login'], 'Bearer abc')).rejects.toBeInstanceOf(
+      HttpException,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
