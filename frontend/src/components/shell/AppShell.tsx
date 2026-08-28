@@ -28,7 +28,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
       <div className="flex-1 flex flex-row overflow-hidden">
         <SideNav items={items} />
-        <div className="flex-1 flex flex-col overflow-hidden">{children}</div>
+        {/* overflow-y-auto, no overflow-hidden: las pantallas montadas aca (formularios
+            largos, listados paginados) suelen ser mas altas que el viewport. Con
+            overflow-hidden el contenido se recorta sin scroll y sin error visible -
+            el boton de guardar quedaba inalcanzable. */}
+        <div className="flex-1 flex flex-col overflow-y-auto">{children}</div>
       </div>
 
       <div className="md:hidden">
