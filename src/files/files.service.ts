@@ -9,6 +9,20 @@ import { getEnv } from '../config/env';
 // fotos y actas migradas apuntan a keys de ese bucket, y usar uno nuevo
 // obligaria a reescribir URLs viejas. Rotar sus credenciales o borrarlo rompe
 // los tres modulos.
+
+// Extension fija por tipo de contenido ya validado por magic bytes en el
+// controller. No se deriva del nombre que manda el cliente: un JPEG real
+// subido como "evil.html" o "foo.svg" terminaria guardado con esa extension
+// en un bucket compartido y servido por url publica, que es exactamente el
+// tipo de objeto que despues alguien sirve con el content-type equivocado.
+const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+};
+
 @Injectable()
 export class FilesService {
   private readonly logger = new Logger(FilesService.name);
@@ -35,8 +49,13 @@ export class FilesService {
     });
   }
 
-  private buildKey(originalName: string, carpeta: string): string {
-    const ext = path.extname(originalName).toLowerCase();
+  // contentType, cuando llega, manda sobre la extension del nombre original:
+  // es el tipo que ya paso la validacion de firma binaria. El fallback al
+  // nombre original solo cubre el caso sin contentType (compatibilidad con
+  // el test del servicio, que llama a buildKey directo).
+  private buildKey(originalName: string, carpeta: string, contentType?: string): string {
+    const ext = (contentType && EXTENSION_BY_CONTENT_TYPE[contentType])
+      ?? path.extname(originalName).toLowerCase();
     return `${carpeta}/${randomUUID()}${ext}`;
   }
 
@@ -45,18 +64,24 @@ export class FilesService {
   }
 
   // Sube un buffer ya validado por el controller (mimetype, tamano, firma).
+  // contentType es el tipo real detectado por magic bytes, no el que reporta
+  // el cliente: se usa tanto para la extension de la key como para el
+  // ContentType que R2 le va a devolver al navegador. Sin este dato, R2 sirve
+  // el objeto como application/octet-stream y el navegador lo descarga en
+  // vez de mostrarlo.
   // Devuelve la key generada y la url publica cuando hay R2_PUBLIC_URL
   // configurado; si no, el llamador debe pedir una url firmada aparte.
   async uploadFile(
     buffer: Buffer,
     originalName: string,
     carpeta: string,
+    contentType?: string,
   ): Promise<{ key: string; url: string | null }> {
     if (!buffer || buffer.length === 0) {
       throw new BadRequestException('El archivo esta vacio');
     }
 
-    const key = this.buildKey(originalName, carpeta);
+    const key = this.buildKey(originalName, carpeta, contentType);
 
     try {
       await this.s3.send(
@@ -64,6 +89,7 @@ export class FilesService {
           Bucket: this.bucket,
           Key: key,
           Body: buffer,
+          ContentType: contentType,
         }),
       );
     } catch (error) {

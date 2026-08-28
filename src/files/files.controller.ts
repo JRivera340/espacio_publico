@@ -20,12 +20,14 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 // El mimetype que reporta el cliente es solo el minimo: se puede falsificar
-// desde el propio navegador. Confirmar tambien la firma binaria del archivo
-// (magic bytes) antes de aceptarlo.
-function coincideConFirmaDeImagen(buffer: Buffer): boolean {
-  if (buffer.length < 4) return false;
+// desde el propio navegador. La firma binaria (magic bytes) es la fuente de
+// verdad del tipo real, y ese tipo -no el nombre del archivo ni el mimetype
+// declarado- es lo que se le pasa al servicio para armar la key y el
+// ContentType que R2 le devuelve al navegador.
+function detectarTipoDeImagen(buffer: Buffer): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  if (buffer.length < 4) return null;
   // JPEG
-  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return true;
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
   // PNG
   if (
     buffer[0] === 0x89 &&
@@ -33,7 +35,7 @@ function coincideConFirmaDeImagen(buffer: Buffer): boolean {
     buffer[2] === 0x4e &&
     buffer[3] === 0x47
   ) {
-    return true;
+    return 'image/png';
   }
   // WEBP: 'RIFF'....'WEBP'
   if (
@@ -41,13 +43,13 @@ function coincideConFirmaDeImagen(buffer: Buffer): boolean {
     buffer.toString('ascii', 0, 4) === 'RIFF' &&
     buffer.toString('ascii', 8, 12) === 'WEBP'
   ) {
-    return true;
+    return 'image/webp';
   }
-  return false;
+  return null;
 }
 
-function coincideConFirmaDePdf(buffer: Buffer): boolean {
-  return buffer.length >= 5 && buffer.toString('ascii', 0, 5) === '%PDF-';
+function detectarTipoDePdf(buffer: Buffer): 'application/pdf' | null {
+  return buffer.length >= 5 && buffer.toString('ascii', 0, 5) === '%PDF-' ? 'application/pdf' : null;
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -65,11 +67,12 @@ export class FilesController {
     if (!IMAGE_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException('La foto debe ser una imagen JPG, PNG o WebP');
     }
-    if (!coincideConFirmaDeImagen(file.buffer)) {
+    const tipoReal = detectarTipoDeImagen(file.buffer);
+    if (!tipoReal) {
       throw new BadRequestException('El contenido del archivo no corresponde a una imagen valida');
     }
 
-    const { key, url } = await this.filesService.uploadFile(file.buffer, file.originalname, 'photos');
+    const { key, url } = await this.filesService.uploadFile(file.buffer, file.originalname, 'photos', tipoReal);
     return { key, url };
   }
 
@@ -83,11 +86,12 @@ export class FilesController {
     if (file.mimetype !== 'application/pdf') {
       throw new BadRequestException('El acta debe ser un archivo PDF');
     }
-    if (!coincideConFirmaDePdf(file.buffer)) {
+    const tipoReal = detectarTipoDePdf(file.buffer);
+    if (!tipoReal) {
       throw new BadRequestException('El contenido del archivo no corresponde a un PDF valido');
     }
 
-    const { key, url } = await this.filesService.uploadFile(file.buffer, file.originalname, 'actas');
+    const { key, url } = await this.filesService.uploadFile(file.buffer, file.originalname, 'actas', tipoReal);
     return { key, url };
   }
 }
