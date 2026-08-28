@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards,
+  BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,9 +15,22 @@ type AuthedRequest = Request & {
   user: { userId: string; email: string; role: Role };
 };
 
+// Convierte un query param a entero no negativo. Ausente o vacio devuelve
+// undefined (se ignora); cualquier otro valor que no sea un entero >= 0 es un
+// 400 legible en vez de dejar que Number(...) produzca NaN o un negativo que
+// termine en un LIMIT/OFFSET invalido que Postgres rechaza con un 500 opaco.
+function parseNonNegativeInt(raw: any, nombreParametro: string): number | undefined {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const valor = Number(raw);
+  if (!Number.isInteger(valor) || valor < 0) {
+    throw new BadRequestException(`El parametro "${nombreParametro}" debe ser un numero entero mayor o igual a 0.`);
+  }
+  return valor;
+}
+
 // Los filtros de query llegan siempre como string desde Express: hay que
 // castear explicitamente antes de pasarlos al repositorio.
-function parseFilters(query: Record<string, any>): ListFilters {
+export function parseFilters(query: Record<string, any>): ListFilters {
   const filters: ListFilters = {};
   if (query.desde) filters.desde = query.desde;
   if (query.hasta) filters.hasta = query.hasta;
@@ -25,8 +38,10 @@ function parseFilters(query: Record<string, any>): ListFilters {
   if (query.gestor) filters.gestor = query.gestor;
   if (query.status) filters.status = query.status;
   if (query.isNightShift !== undefined) filters.isNightShift = query.isNightShift === 'true';
-  if (query.limit !== undefined) filters.limit = Number(query.limit);
-  if (query.offset !== undefined) filters.offset = Number(query.offset);
+  const limit = parseNonNegativeInt(query.limit, 'limit');
+  if (limit !== undefined) filters.limit = limit;
+  const offset = parseNonNegativeInt(query.offset, 'offset');
+  if (offset !== undefined) filters.offset = offset;
   return filters;
 }
 
