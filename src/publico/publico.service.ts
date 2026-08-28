@@ -5,6 +5,7 @@ import { OperativoSubtipo } from '../actividades/enums/operativo-subtipo.enum';
 import { ListFilters } from '../actividades/actividades.types';
 import { Actividad } from '../actividades/actividades.repository';
 import { sanitizarDatosPublicos } from './public-fields';
+import { codigoVisible } from '../actividades/lib/codigo';
 
 // Forma publica de una actividad. Se construye campo por campo a proposito:
 // una nueva columna en la entidad no se filtra sola, hay que agregarla aca.
@@ -38,7 +39,7 @@ export class PublicoService {
       lng: a.lng,
       barrio: a.barrio,
       subtipo: a.operativoSubtipo,
-      codigo: `EP-${a.categorySeq ?? ''}`,
+      codigo: codigoVisible(a.categorySeq),
       photos: [...(a.photos ?? [])],
       cifras: sanitizarDatosPublicos(a.operativoSubtipo, a.dynamicAnswers),
     };

@@ -1,14 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import type { Actividad } from '../actividades/actividades.repository';
+import { codigoVisible } from '../actividades/lib/codigo';
 
 // Columnas fijas del reporte, en orden. Despues de estas se agregan las
 // columnas dinamicas que salen de aplanar dynamicAnswers.
-function codigoVisible(actividad: Actividad): string {
-  const seq = actividad.categorySeq ?? 0;
-  return `EP-${String(seq).padStart(2, '0')}`;
-}
-
 function enlacePublico(frontendUrl: string, actividad: Actividad): string {
   const base = frontendUrl.replace(/\/+$/, '');
   return `${base}/public/actividad/${actividad.id}`;
@@ -29,7 +25,7 @@ function aplanarDynamicAnswers(dynamicAnswers?: Record<string, any> | null): Rec
 
 function filaDeActividad(actividad: Actividad, frontendUrl: string): Record<string, any> {
   return {
-    Codigo: codigoVisible(actividad),
+    Codigo: codigoVisible(actividad.categorySeq),
     Fecha: actividad.dateTime,
     Turno: actividad.shift,
     Estado: actividad.status,
