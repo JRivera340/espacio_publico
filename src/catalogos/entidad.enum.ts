@@ -2,6 +2,7 @@
 export enum Entidad {
   UAESP = 'UAESP',
   PROMOAMBIENTAL = 'Promoambiental',
+  IVC = 'IVC',
   ALCALDIA_SANTA_FE = 'Alcaldía Local de Santa Fé',
   POLICIA = 'Policía Nacional',
   EJERCITO = 'Ejército Nacional',
