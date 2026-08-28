@@ -1,7 +1,8 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
 import { PublicoService } from './publico.service';
 import { ListFilters } from '../actividades/actividades.types';
+import { UUID_REGEX } from '../users-proxy/users-proxy.controller';
 
 // Endpoints sin autenticacion: alimentan el visor publico. Todo lo que salga
 // de aca es legible por cualquiera en internet.
@@ -26,6 +27,12 @@ export class PublicoController {
   @Public()
   @Get('actividades/:id')
   async obtener(@Param('id') id: string) {
+    // Un id que ni siquiera es un uuid nunca puede existir en la tabla: un
+    // 400 aca no distingue nada que un 404 ya no distinguiera (ambos dicen
+    // "esto no es una actividad publicada valida").
+    if (!UUID_REGEX.test(id)) {
+      throw new BadRequestException('Id de actividad invalido');
+    }
     const actividad = await this.publico.obtener(id);
     if (!actividad) throw new NotFoundException('Actividad no encontrada');
     return actividad;
