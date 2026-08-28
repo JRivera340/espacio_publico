@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Get,
   Post,
   UploadedFile,
   UseGuards,
@@ -56,6 +57,15 @@ function detectarTipoDePdf(buffer: Buffer): 'application/pdf' | null {
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
+
+  // Lo consume el hook de archivos del frontend para construir las URLs de las
+  // fotos y actas. Devuelve null si R2 no esta configurado, y el frontend cae
+  // en su propio fallback en vez de romper.
+  @Get('config/public-url')
+  @Roles(Role.GESTOR_ESPACIO_PUBLICO, Role.VALIDADOR_ESPACIO_PUBLICO, Role.ADMIN)
+  getPublicUrlConfig(): { publicUrl: string | null } {
+    return { publicUrl: this.filesService.getPublicUrl() };
+  }
 
   @Post('upload')
   @Roles(Role.GESTOR_ESPACIO_PUBLICO, Role.VALIDADOR_ESPACIO_PUBLICO, Role.ADMIN)
