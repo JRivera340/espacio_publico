@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { HandoffPage } from './pages/HandoffPage';
 import { irAlLoginDelHub } from './config/hub';
+import { AppShell } from './components/shell/AppShell';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -36,7 +37,7 @@ function RutaProtegida({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
 }
 
 function App() {
