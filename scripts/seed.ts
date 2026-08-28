@@ -6,6 +6,7 @@ import { OperativoSubtipo } from '../src/actividades/enums/operativo-subtipo.enu
 import { Turno } from '../src/actividades/enums/turno.enum';
 import { BARRIOS } from '../src/catalogos/barrio.enum';
 import { TEST_IDENTITIES } from '../src/config/test-identities';
+import { chequearSeedGuard } from '../src/config/seed-guard';
 
 // Datos enteramente inventados para desarrollo local. Nunca un export de la
 // base real: sin nombres de personas, sin cedulas, coordenadas y barrios
@@ -54,6 +55,17 @@ const PLAN: Estado[] = [
 ];
 
 async function seed() {
+  const force = process.argv.includes('--force');
+  const motivoAborto = chequearSeedGuard({
+    nodeEnv: process.env.NODE_ENV,
+    dbHost: process.env.DB_HOST,
+    force,
+  });
+  if (motivoAborto) {
+    console.error(`[SEED] ${motivoAborto}`);
+    process.exit(1);
+  }
+
   await AppDataSource.initialize();
   const repo = AppDataSource.getRepository(ActividadEntity);
 
