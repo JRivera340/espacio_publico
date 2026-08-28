@@ -57,12 +57,18 @@ PostgreSQL propia.
 
 ```bash
 docker compose up -d          # levanta Postgres en localhost:5433
-cp .env.example .env          # completar los valores, ver tabla abajo
+cp .env.example .env          # los valores por defecto ya apuntan a ese Postgres local
 npm install
 npm run migration:run         # aplica las migraciones de TypeORM
 npm run seed                  # datos ficticios de desarrollo (ver abajo)
 npm run start:dev
 ```
+
+`.env.example` ya trae `DB_PORT=5433` a proposito: es el puerto que
+`docker-compose.yml` mapea al host (el `5432` de adentro del contenedor no es
+accesible directo). Con Docker levantado, `cp .env.example .env` alcanza sin
+editar nada — solo hace falta tocar `JWT_SECRET` o `HUB_API_URL` si vas a
+probar el handoff o el proxy de usuarios contra un hub real.
 
 El servidor queda escuchando en `http://localhost:3002/api` (o el `PORT`
 configurado). `GET /api/health` responde `{ "status": "ok" }` cuando esta
