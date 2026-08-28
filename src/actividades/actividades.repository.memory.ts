@@ -182,9 +182,11 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getMyStats(userId: string, filters?: ListFilters): Promise<{ enviada: number; aprobada: number; rechazada: number }> {
-    const propias = this.filas.filter((f) => f.createdByUserId === userId);
+    const propias = this.aplicarFiltroFecha(
+      this.filas.filter((f) => f.createdByUserId === userId),
+      filters,
+    );
     return {
       enviada: propias.filter((f) => f.status === ActividadStatus.ENVIADA).length,
       aprobada: propias.filter((f) => f.status === ActividadStatus.PUBLICADA).length,
@@ -209,10 +211,10 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     }));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getBarriosStats(filters?: ListFilters): Promise<{ cubiertas: BarrioStats[]; descuidadas: string[] }> {
+    const consideradas = this.aplicarFiltroFecha(this.filas, filters);
     const porBarrio = new Map<string, Actividad[]>();
-    for (const f of this.filas) {
+    for (const f of consideradas) {
       const lista = porBarrio.get(f.barrio) ?? [];
       lista.push(f);
       porBarrio.set(f.barrio, lista);
@@ -237,6 +239,15 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     if (filters?.isNightShift !== undefined) {
       resultado = resultado.filter((f) => f.isNightShift === filters.isNightShift);
     }
+    return this.aplicarFiltroFecha(resultado, filters);
+  }
+
+  // Filtro desde/hasta solo, extraido de aplicarFiltros para que getMyStats y
+  // getBarriosStats tambien lo apliquen: la version TypeORM ya lo hacia en
+  // ambas y esta se habia quedado atras, con produccion filtrando fecha y los
+  // tests corriendo contra una version que la ignoraba por completo.
+  private aplicarFiltroFecha(filas: Actividad[], filters?: ListFilters): Actividad[] {
+    let resultado = filas;
     if (filters?.desde) resultado = resultado.filter((f) => f.dateTime >= filters.desde!);
     if (filters?.hasta) resultado = resultado.filter((f) => f.dateTime <= filters.hasta!);
     return resultado;

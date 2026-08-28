@@ -260,4 +260,25 @@ describe('InMemoryActividadesRepository', () => {
     });
   });
 
+  describe('filtro de fecha en estadisticas', () => {
+    it('getMyStats respeta desde/hasta', async () => {
+      const vieja = await repo.create(GESTOR, entrada({ dateTime: '2026-08-01T14:00:00.000Z' }));
+      await repo.send(vieja.id, GESTOR);
+      const reciente = await repo.create(GESTOR, entrada({ dateTime: '2026-08-25T14:00:00.000Z' }));
+      await repo.send(reciente.id, GESTOR);
+
+      const stats = await repo.getMyStats(GESTOR, { desde: '2026-08-20' });
+      expect(stats.enviada).toBe(1);
+    });
+
+    it('getBarriosStats respeta desde/hasta', async () => {
+      await repo.create(GESTOR, entrada({ barrio: 'LA MACARENA', dateTime: '2026-08-01T14:00:00.000Z' }));
+      await repo.create(GESTOR, entrada({ barrio: 'LAS CRUCES', dateTime: '2026-08-25T14:00:00.000Z' }));
+
+      const { cubiertas } = await repo.getBarriosStats({ desde: '2026-08-20' });
+      expect(cubiertas).toHaveLength(1);
+      expect(cubiertas[0].barrio).toBe('LAS CRUCES');
+    });
+  });
+
 });

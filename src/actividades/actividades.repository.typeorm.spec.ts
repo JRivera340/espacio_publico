@@ -62,3 +62,48 @@ describe('TypeOrmActividadesRepository.toActividad', () => {
     expect(a.validatorName).toBeNull();
   });
 });
+
+// Stub de QueryBuilder que registra las clausulas `andWhere` en vez de tocar
+// una base real. Sirve para confirmar que getMyStats/getBarriosStats aplican
+// el filtro de fecha, que es justo lo que la version en memoria no hacia.
+function crearQueryBuilderStub(resultado: { count?: number; rawMany?: any[] }) {
+  const clausulas: string[] = [];
+  const qb: any = {
+    where: () => qb,
+    andWhere: (sql: string) => {
+      clausulas.push(sql);
+      return qb;
+    },
+    select: () => qb,
+    addSelect: () => qb,
+    groupBy: () => qb,
+    addGroupBy: () => qb,
+    getCount: async () => resultado.count ?? 0,
+    getRawMany: async () => resultado.rawMany ?? [],
+  };
+  return { qb, clausulas };
+}
+
+describe('TypeOrmActividadesRepository — filtro de fecha en estadisticas', () => {
+  it('getMyStats aplica desde/hasta a las tres consultas de conteo', async () => {
+    const { qb, clausulas } = crearQueryBuilderStub({ count: 1 });
+    const repoFake: any = { createQueryBuilder: () => qb };
+    const repo = new TypeOrmActividadesRepository(repoFake);
+
+    await repo.getMyStats('gestor-1', { desde: '2026-08-20', hasta: '2026-08-25' });
+
+    const textoClausulas = clausulas.join(' | ');
+    expect(textoClausulas).toContain(':desde');
+    expect(textoClausulas).toContain(':hasta');
+  });
+
+  it('getBarriosStats aplica desde/hasta a la consulta agregada', async () => {
+    const { qb, clausulas } = crearQueryBuilderStub({ rawMany: [] });
+    const repoFake: any = { createQueryBuilder: () => qb };
+    const repo = new TypeOrmActividadesRepository(repoFake);
+
+    await repo.getBarriosStats({ desde: '2026-08-20' });
+
+    expect(clausulas.join(' | ')).toContain(':desde');
+  });
+});
