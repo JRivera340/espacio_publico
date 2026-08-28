@@ -13,10 +13,11 @@ import { getEnv } from '../config/env';
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 // Cualquiera de estos, dentro de UN segmento de la ruta hacia el hub, es un
-// intento de salirse de /api/users/<recurso> hacia otra ruta del hub (barra,
-// backslash, "..", o sus variantes porcentaje-codificadas, que Express
-// decodifica dentro del segmento antes de que este codigo las vea).
-const PATH_TRAVERSAL_PATTERN = /\/|\|\.\.|%2f|%5c/i;
+// intento de salirse de /api/users/<recurso> hacia otra ruta del hub: barra,
+// backslash, "..", o sus variantes porcentaje-codificadas (incluido %2e, el
+// punto codificado, que permite armar %2e%2e). Express decodifica estas
+// secuencias dentro del segmento antes de que este codigo las vea.
+export const PATH_TRAVERSAL_PATTERN = /\/|\\|\.\.|%2f|%5c|%2e/i;
 
 // Este modulo no tiene tabla de usuarios: la identidad viene del hub (JWT
 // compartido, ver jwt.strategy.ts). Para listar gestores —necesario para los
@@ -32,7 +33,7 @@ export class UsersProxyController {
   // mano) para poder validar cada segmento por separado. Asi un endpoint con
   // varios segmentos fijos como 'gestores/list' sigue funcionando, pero
   // ningun segmento individual —en especial uno que venga de un parametro de
-  // la URL, como el :id— puede colarse con una barra, un backslash o "..' y
+  // la URL, como el :id— puede colarse con una barra, un backslash o ".." y
   // pivotear hacia otra ruta del hub. Es defensa en profundidad: aunque un
   // endpoint futuro se olvide de validar su propio parametro, este helper lo
   // frena igual.

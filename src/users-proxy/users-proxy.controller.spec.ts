@@ -1,5 +1,5 @@
 import { BadRequestException, HttpException } from '@nestjs/common';
-import { UsersProxyController } from './users-proxy.controller';
+import { UsersProxyController, PATH_TRAVERSAL_PATTERN } from './users-proxy.controller';
 
 describe('UsersProxyController', () => {
   let controller: UsersProxyController;
@@ -107,5 +107,28 @@ describe('UsersProxyController', () => {
       HttpException,
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('PATH_TRAVERSAL_PATTERN', () => {
+  const bloqueados = [
+    '..',
+    '\\',
+    'a\\b',
+    '/',
+    '%2f',
+    '%2F',
+    '%5c',
+    '%2e%2e',
+  ];
+  const permitidos = ['gestores', 'list', '11111111-1111-1111-1111-111111111111'];
+
+  it.each(bloqueados)('bloquea %p', (valor) => {
+    expect(PATH_TRAVERSAL_PATTERN.test(valor)).toBe(true);
+  });
+
+  it.each(permitidos)('deja pasar %p', (valor) => {
+    expect(PATH_TRAVERSAL_PATTERN.test(valor)).toBe(false);
   });
 });
