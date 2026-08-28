@@ -10,7 +10,10 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { getEnv } from '../config/env';
 
-const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+// Compartido con actividades.controller.ts y publico.controller.ts para
+// validar un :id antes de pasarlo a Postgres: un uuid mal formado ahi
+// termina en un 500 crudo del driver en vez de un 400 legible.
+export const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 // Cualquiera de estos, dentro de UN segmento de la ruta hacia el hub, es un
 // intento de salirse de /api/users/<recurso> hacia otra ruta del hub: barra,

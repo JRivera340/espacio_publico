@@ -1,7 +1,8 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { ACTIVIDADES_REPOSITORY } from './actividades.tokens';
 import type { ActividadesRepository } from './actividades.repository';
 import { CreateActividadInput, UpdateActividadInput, ListFilters } from './actividades.types';
+import { Role } from '../common/enums/role.enum';
 
 @Injectable()
 export class ActividadesService {
@@ -14,8 +15,20 @@ export class ActividadesService {
     return this.repo.create(createdByUserId, dto);
   }
 
-  obtener(id: string) {
-    return this.repo.findById(id);
+  // Un gestor solo puede ver el detalle de sus propias actividades, o de
+  // aquellas donde figura como co-involucrado en un operativo en grupo
+  // (gestoresInvolucradosIds). Validador y ADMIN ven cualquiera; el visor
+  // publico llama sin userId/role y tampoco queda restringido por esto.
+  async obtener(id: string, userId?: string, role?: string) {
+    const actividad = await this.repo.findById(id);
+    if (role === Role.GESTOR_ESPACIO_PUBLICO) {
+      const esDueno = actividad.createdByUserId === userId;
+      const esInvolucrado = (actividad.gestoresInvolucradosIds ?? []).includes(userId ?? '');
+      if (!esDueno && !esInvolucrado) {
+        throw new ForbiddenException('No tienes acceso a esta actividad');
+      }
+    }
+    return actividad;
   }
 
   editar(id: string, userId: string, role: string, dto: UpdateActividadInput) {
@@ -34,7 +47,12 @@ export class ActividadesService {
     return this.repo.listAll(filters);
   }
 
-  listarIds(filters: ListFilters) {
+  // Igual que obtener(): un gestor solo recibe los ids de sus propias
+  // actividades. Validador y ADMIN reciben los de todas.
+  listarIds(filters: ListFilters, userId?: string, role?: string) {
+    if (role === Role.GESTOR_ESPACIO_PUBLICO) {
+      return this.repo.listAllIds({ ...filters, gestor: userId });
+    }
     return this.repo.listAllIds(filters);
   }
 

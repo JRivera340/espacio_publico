@@ -1,10 +1,13 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ActividadesService } from './actividades.service';
 import { InMemoryActividadesRepository } from './actividades.repository.memory';
 import { ActividadStatus } from './enums/actividad-status.enum';
 
 const GESTOR = '00000000-0000-0000-0000-000000000001';
 const VALIDADOR = '00000000-0000-0000-0000-000000000002';
+const ADMIN = '00000000-0000-0000-0000-000000000003';
+const OTRO_GESTOR = '00000000-0000-0000-0000-000000000009';
+const GESTOR_INVOLUCRADO = '00000000-0000-0000-0000-000000000010';
 
 const base = {
   dateTime: '2026-08-20T14:00:00.000Z',
@@ -50,5 +53,68 @@ describe('ActividadesService', () => {
     await service.enviar(a.id, GESTOR, 'GESTOR_ESPACIO_PUBLICO');
     await service.aprobar(a.id, VALIDADOR);
     expect(await service.misEstadisticas(GESTOR)).toEqual({ enviada: 0, aprobada: 1, rechazada: 0 });
+  });
+
+  describe('obtener — un gestor no ve actividades ajenas', () => {
+    it('el gestor dueno ve su actividad', async () => {
+      const a = await service.crear(GESTOR, base);
+      const vista = await service.obtener(a.id, GESTOR, 'GESTOR_ESPACIO_PUBLICO');
+      expect(vista.id).toBe(a.id);
+    });
+
+    it('un gestor ajeno recibe Forbidden', async () => {
+      const a = await service.crear(GESTOR, base);
+      await expect(
+        service.obtener(a.id, OTRO_GESTOR, 'GESTOR_ESPACIO_PUBLICO'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('un gestor co-involucrado en un operativo en grupo si puede ver', async () => {
+      const a = await service.crear(GESTOR, {
+        ...base,
+        isGroupOperativo: true,
+        gestoresInvolucradosIds: [GESTOR_INVOLUCRADO],
+      });
+      const vista = await service.obtener(a.id, GESTOR_INVOLUCRADO, 'GESTOR_ESPACIO_PUBLICO');
+      expect(vista.id).toBe(a.id);
+    });
+
+    it('validador ve cualquier actividad', async () => {
+      const a = await service.crear(GESTOR, base);
+      const vista = await service.obtener(a.id, VALIDADOR, 'VALIDADOR_ESPACIO_PUBLICO');
+      expect(vista.id).toBe(a.id);
+    });
+
+    it('admin ve cualquier actividad', async () => {
+      const a = await service.crear(GESTOR, base);
+      const vista = await service.obtener(a.id, ADMIN, 'ADMIN');
+      expect(vista.id).toBe(a.id);
+    });
+  });
+
+  describe('listarIds — un gestor solo recibe los propios', () => {
+    it('gestor recibe solo sus ids', async () => {
+      const propia = await service.crear(GESTOR, base);
+      await service.crear(OTRO_GESTOR, base);
+
+      const ids = await service.listarIds({}, GESTOR, 'GESTOR_ESPACIO_PUBLICO');
+      expect(ids).toEqual([propia.id]);
+    });
+
+    it('validador recibe los ids de todas', async () => {
+      await service.crear(GESTOR, base);
+      await service.crear(OTRO_GESTOR, base);
+
+      const ids = await service.listarIds({}, VALIDADOR, 'VALIDADOR_ESPACIO_PUBLICO');
+      expect(ids).toHaveLength(2);
+    });
+
+    it('admin recibe los ids de todas', async () => {
+      await service.crear(GESTOR, base);
+      await service.crear(OTRO_GESTOR, base);
+
+      const ids = await service.listarIds({}, ADMIN, 'ADMIN');
+      expect(ids).toHaveLength(2);
+    });
   });
 });

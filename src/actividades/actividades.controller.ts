@@ -12,6 +12,7 @@ import { CreateActividadDto } from './dto/create-actividad.dto';
 import { UpdateActividadDto } from './dto/update-actividad.dto';
 import { ListFilters } from './actividades.types';
 import { getEnv } from '../config/env';
+import { UUID_REGEX } from '../users-proxy/users-proxy.controller';
 
 type AuthedRequest = Request & {
   user: { userId: string; email: string; role: Role };
@@ -87,8 +88,8 @@ export class ActividadesController {
 
   @Get('all-ids')
   @Roles(Role.GESTOR_ESPACIO_PUBLICO, Role.VALIDADOR_ESPACIO_PUBLICO, Role.ADMIN)
-  listarIds(@Query() query: Record<string, any>) {
-    return this.service.listarIds(parseFilters(query));
+  listarIds(@Req() req: AuthedRequest, @Query() query: Record<string, any>) {
+    return this.service.listarIds(parseFilters(query), req.user.userId, req.user.role);
   }
 
   @Get('stats/gestores')
@@ -124,8 +125,11 @@ export class ActividadesController {
 
   @Get(':id')
   @Roles(Role.GESTOR_ESPACIO_PUBLICO, Role.VALIDADOR_ESPACIO_PUBLICO, Role.ADMIN)
-  obtener(@Param('id') id: string) {
-    return this.service.obtener(id);
+  obtener(@Req() req: AuthedRequest, @Param('id') id: string) {
+    if (!UUID_REGEX.test(id)) {
+      throw new BadRequestException('Id de actividad invalido');
+    }
+    return this.service.obtener(id, req.user.userId, req.user.role);
   }
 
   @Patch(':id')
