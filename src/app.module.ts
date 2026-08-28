@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { ActividadesModule } from './actividades/actividades.module';
 import { UsersProxyModule } from './users-proxy/users-proxy.module';
 import { CatalogosModule } from './catalogos/catalogos.module';
+import { FilesModule } from './files/files.module';
 import { typeOrmConfig } from './config/typeorm.config';
 
 @Module({
@@ -14,6 +15,7 @@ import { typeOrmConfig } from './config/typeorm.config';
     ActividadesModule,
     UsersProxyModule,
     CatalogosModule,
+    FilesModule,
   ],
   controllers: [AppController],
 })
