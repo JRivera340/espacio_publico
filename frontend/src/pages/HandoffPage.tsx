@@ -38,6 +38,28 @@ export const HandoffPage: React.FC = () => {
     if (processed.current) return;
     processed.current = true;
 
+    const hash = window.location.hash;
+    const match = hash.match(/token=([^&]+)/);
+    const token = match ? decodeURIComponent(match[1]) : null;
+
+    // El token es una credencial: sirve para el hub, para ambiental y para
+    // este modulo. Se limpia del fragmento apenas se lee, ANTES de mirar
+    // ?error=, antes de decodificar, antes de cualquier return - no puede
+    // haber un camino de salida entre leer el token y limpiarlo, porque
+    // cualquier return agregado despues de este punto reabriria el hueco.
+    // Si history.replaceState llegara a lanzar (contexto sin acceso al
+    // historial), no puede tirar abajo el resto del flujo: sin este
+    // try/catch la pantalla quedaria colgada en "Procesando sesion..." para
+    // siempre.
+    if (token) {
+      try {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      } catch {
+        // No poder limpiar el historial no es motivo para dejar al usuario
+        // sin pantalla - se sigue con el flujo normal.
+      }
+    }
+
     const params = new URLSearchParams(window.location.search);
     const errorParam = params.get('error');
     if (errorParam) {
@@ -45,21 +67,10 @@ export const HandoffPage: React.FC = () => {
       return;
     }
 
-    const hash = window.location.hash;
-    const match = hash.match(/token=([^&]+)/);
-    const token = match ? decodeURIComponent(match[1]) : null;
-
     if (!token) {
       setStatus('error');
       return;
     }
-
-    // El token es una credencial: sirve para el hub, para ambiental y para
-    // este modulo. Se limpia del fragmento apenas se extrae, antes de
-    // intentar decodificarlo, para que no quede en la barra de direcciones
-    // ni en el historial del navegador sin importar como termine lo que
-    // sigue (payload malformado, JSON invalido, etc).
-    history.replaceState(null, '', window.location.pathname);
 
     const payload = decodeJwtPayload(token);
     if (!payload) {

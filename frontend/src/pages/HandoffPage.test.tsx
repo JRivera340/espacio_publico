@@ -28,6 +28,7 @@ describe('HandoffPage', () => {
     sessionStorage.clear();
     useAuthStore.getState().logout();
     window.location.hash = '';
+    window.history.replaceState(null, '', window.location.pathname);
   });
 
   // Sin globals:true en la config de vitest, @testing-library/react no
@@ -72,6 +73,18 @@ describe('HandoffPage', () => {
     // decodifica a JSON valido.
     const payloadB64 = btoa('esto no es json').replace(/=/g, '');
     window.location.hash = `#token=cabecera.${payloadB64}.firma`;
+    montar();
+    await waitFor(() => expect(screen.getByText(/no se pudo iniciar sesion/i)).toBeDefined());
+    expect(window.location.hash).toBe('');
+  });
+
+  it('limpia el fragmento aunque la url tambien traiga ?error=', async () => {
+    // El backend nunca produce esta combinacion (redirige a ?error= o a
+    // #token=, nunca a los dos), pero el token no puede depender de que
+    // return se ejecute primero: si hay token, se limpia sin importar que
+    // ?error= tambien este presente.
+    history.replaceState(null, '', `${window.location.pathname}?error=invalid_token`);
+    window.location.hash = `#token=${tokenFalso('GESTOR_ESPACIO_PUBLICO')}`;
     montar();
     await waitFor(() => expect(screen.getByText(/no se pudo iniciar sesion/i)).toBeDefined());
     expect(window.location.hash).toBe('');
