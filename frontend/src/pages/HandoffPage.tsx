@@ -3,13 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { irAlLoginDelHub } from '../config/hub';
 import type { User } from '../types';
-
-// Ruta de aterrizaje por rol tras el handoff.
-const RUTA_POR_ROL: Partial<Record<string, string>> = {
-  GESTOR_ESPACIO_PUBLICO: '/gestor/dashboard',
-  VALIDADOR_ESPACIO_PUBLICO: '/validador/dashboard',
-  ADMIN: '/admin',
-};
+import { RUTA_POR_ROL } from '../utils/permissions';
 
 // Pantalla de destino del handoff. Lee el JWT del fragmento de URL (nunca
 // llega al servidor), lo decodifica (sin verificar firma: eso ya lo hizo el
@@ -90,7 +84,7 @@ export const HandoffPage: React.FC = () => {
 
     login(token, user);
 
-    const destino = RUTA_POR_ROL[payload.role];
+    const destino = (RUTA_POR_ROL as Record<string, string>)[payload.role];
     if (destino) {
       navigate(destino, { replace: true });
       return;
