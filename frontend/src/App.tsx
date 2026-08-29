@@ -6,6 +6,7 @@ import { irAlLoginDelHub } from './config/hub';
 import { AppShell } from './components/shell/AppShell';
 import { RUTA_POR_ROL, ROUTE_ACCESS } from './utils/permissions';
 import type { Role } from './types';
+import { Toast } from './components/Toast';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -68,30 +69,60 @@ function RutaProtegida({ children, roles }: { children: React.ReactNode; roles: 
 }
 
 function App() {
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const [sesionVencida, setSesionVencida] = React.useState(false);
+
+  React.useEffect(() => {
+    // api.ts despacha este evento al recibir un 401 con token guardado, pero
+    // solo limpia sessionStorage - sin este oyente el store de Zustand seguia
+    // creyendo que habia sesion (isAuthenticated/user/token en memoria) y el
+    // usuario se quedaba viendo una interfaz que parece andar mientras cada
+    // pedido vuelve 401 en silencio.
+    function manejarSesionVencida() {
+      clearAuth();
+      setSesionVencida(true);
+      // Le da tiempo al usuario de leer el aviso antes de sacarlo del modulo.
+      setTimeout(() => irAlLoginDelHub(), 2000);
+    }
+
+    window.addEventListener('session-expired', manejarSesionVencida);
+    return () => window.removeEventListener('session-expired', manejarSesionVencida);
+  }, [clearAuth]);
+
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/handoff" replace />} />
+    <>
+      {sesionVencida && (
+        <Toast
+          type="error"
+          message="Tu sesion vencio. Te llevamos al inicio de sesion."
+          duration={0}
+          onClose={() => setSesionVencida(false)}
+        />
+      )}
+      <Routes>
+        <Route path="/" element={<Navigate to="/handoff" replace />} />
 
-      <Route path="/handoff" element={<HandoffPage />} />
+        <Route path="/handoff" element={<HandoffPage />} />
 
-      <Route
-        path="/gestor/dashboard"
-        element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/dashboard']}><div>Dashboard del gestor</div></RutaProtegida>}
-      />
-      <Route
-        path="/validador/dashboard"
-        element={<RutaProtegida roles={ROUTE_ACCESS['/validador/dashboard']}><div>Dashboard del validador</div></RutaProtegida>}
-      />
-      <Route
-        path="/admin"
-        element={<RutaProtegida roles={ROUTE_ACCESS['/admin']}><div>Panel de administracion</div></RutaProtegida>}
-      />
+        <Route
+          path="/gestor/dashboard"
+          element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/dashboard']}><div>Dashboard del gestor</div></RutaProtegida>}
+        />
+        <Route
+          path="/validador/dashboard"
+          element={<RutaProtegida roles={ROUTE_ACCESS['/validador/dashboard']}><div>Dashboard del validador</div></RutaProtegida>}
+        />
+        <Route
+          path="/admin"
+          element={<RutaProtegida roles={ROUTE_ACCESS['/admin']}><div>Panel de administracion</div></RutaProtegida>}
+        />
 
-      {/* Cualquier ruta sin match (ej: un navigate() a una ruta que ya no
-          existe, o un bundle viejo en cache del navegador apuntando a algo
-          removido) manda al inicio en vez de dejar la pantalla en blanco. */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Cualquier ruta sin match (ej: un navigate() a una ruta que ya no
+            existe, o un bundle viejo en cache del navegador apuntando a algo
+            removido) manda al inicio en vez de dejar la pantalla en blanco. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
 
