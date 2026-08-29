@@ -65,6 +65,9 @@ export interface Actividad {
 
   publishedAt?: string | null;
 
+  // Secuencia numerica por la que se arma el codigo visible (ver utils/activityCode.ts)
+  categorySeq?: number | null;
+
   createdAt: string;
   updatedAt: string;
 }
