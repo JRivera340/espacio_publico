@@ -15,10 +15,15 @@ export const RUTA_POR_ROL: Record<Role, string> = {
   ADMIN: '/admin',
 };
 
-// Roles permitidos por ruta protegida. El ADMIN entra a las tres porque
-// valida y administra por encima de gestor y validador (ver navItems).
+// Roles permitidos por ruta protegida. El ADMIN entra a todas porque valida
+// y administra por encima de gestor y validador (ver navItems). Las tres
+// rutas de gestor ademas de dashboard son las pantallas de registro, edicion
+// y detalle de una actividad - mismo rol que el dashboard.
 export const ROUTE_ACCESS: Record<string, Role[]> = {
   '/gestor/dashboard': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
+  '/gestor/crear-actividad': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
+  '/gestor/editar-actividad/:id': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
+  '/gestor/actividad/:id': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
   '/validador/dashboard': ['VALIDADOR_ESPACIO_PUBLICO', 'ADMIN'],
   '/admin': ['ADMIN'],
 };

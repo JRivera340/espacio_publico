@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import { useAuthStore } from './store/authStore';
@@ -11,6 +11,15 @@ vi.mock('./config/hub', () => ({
   irAlLoginDelHub: vi.fn(),
   HUB_URL: 'https://hub.test',
   HUB_LOGIN_URL: 'https://hub.test/login?logout=1',
+}));
+
+// El panel del gestor pide sus actividades al montarse - sin este mock estos
+// tests de ruteo harian una llamada de red real.
+vi.mock('./services/activity.service', () => ({
+  activityService: {
+    listMine: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+    misEstadisticas: vi.fn().mockResolvedValue({ enviada: 0, aprobada: 0, rechazada: 0 }),
+  },
 }));
 
 // Sin globals:true en la config de vitest, testing-library no engancha su
@@ -38,7 +47,7 @@ describe('RutaProtegida - control de acceso por rol', () => {
     expect(screen.getByText(/dashboard del validador/i)).toBeDefined();
   });
 
-  it('un gestor autenticado no ve el dashboard del validador: se lo manda al propio', () => {
+  it('un gestor autenticado no ve el dashboard del validador: se lo manda al propio', async () => {
     useAuthStore.getState().login('tok', {
       id: 'u-1', name: 'gestor@ejemplo.com', lastname: '',
       email: 'gestor@ejemplo.com', role: 'GESTOR_ESPACIO_PUBLICO',
@@ -51,7 +60,7 @@ describe('RutaProtegida - control de acceso por rol', () => {
     );
 
     expect(screen.queryByText(/dashboard del validador/i)).toBeNull();
-    expect(screen.getByText(/dashboard del gestor/i)).toBeDefined();
+    await waitFor(() => expect(screen.getByText(/panel del gestor/i)).toBeDefined());
   });
 
   it('el admin si puede ver el panel de administracion', () => {

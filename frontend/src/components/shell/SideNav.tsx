@@ -16,6 +16,7 @@ export const SideNav: React.FC<SideNavProps> = ({ items }) => (
         <NavLink
           key={item.key}
           to={item.to}
+          end
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-bold transition-colors ${
               isActive ? 'bg-orange-50 text-[#F97316]' : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800'
