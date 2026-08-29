@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { RUTA_POR_ROL, ROUTE_ACCESS, getDashboardPath } from './permissions';
 import type { Role } from '../types';
+import { getNavItems } from '../components/shell/navItems';
 
 const TODOS_LOS_ROLES: Role[] = ['GESTOR_ESPACIO_PUBLICO', 'VALIDADOR_ESPACIO_PUBLICO', 'ADMIN'];
 
@@ -31,9 +32,31 @@ describe('ROUTE_ACCESS', () => {
     }
   });
 
-  it('ADMIN puede entrar a las tres rutas del modulo', () => {
-    for (const ruta of Object.keys(ROUTE_ACCESS)) {
-      expect(ROUTE_ACCESS[ruta]).toContain('ADMIN');
+  // El backend restringe GET /actividades/mine, mine/stats y POST /actividades
+  // a GESTOR_ESPACIO_PUBLICO. Si el frontend deja entrar al ADMIN, llega a una
+  // pantalla que solo puede devolver 403 y se ve igual que una vacia.
+  it('ADMIN no entra a las rutas de gestor', () => {
+    const rutasDeGestor = Object.keys(ROUTE_ACCESS).filter((r) => r.startsWith('/gestor/'));
+    expect(rutasDeGestor.length).toBeGreaterThan(0);
+    for (const ruta of rutasDeGestor) {
+      expect(ROUTE_ACCESS[ruta]).not.toContain('ADMIN');
+    }
+  });
+
+  it('ADMIN entra a validacion y administracion, como en el backend', () => {
+    expect(ROUTE_ACCESS['/validador/dashboard']).toContain('ADMIN');
+    expect(ROUTE_ACCESS['/admin']).toContain('ADMIN');
+  });
+});
+
+// La navegacion no puede ofrecer una pantalla que ROUTE_ACCESS niega: seria un
+// item que lleva a un redirect.
+describe('navItems coincide con ROUTE_ACCESS', () => {
+  it('cada rol solo ve items a los que tiene acceso', () => {
+    for (const role of TODOS_LOS_ROLES) {
+      for (const item of getNavItems(role)) {
+        expect(ROUTE_ACCESS[item.to], `${role} ve un item hacia ${item.to}`).toContain(role);
+      }
     }
   });
 });

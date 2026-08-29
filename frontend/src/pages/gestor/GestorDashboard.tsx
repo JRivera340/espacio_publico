@@ -8,6 +8,7 @@ import { Pagination } from '../../components/Pagination';
 import type { Actividad, ActividadStatus } from '../../types';
 import { getActivityCode } from '../../utils/activityCode';
 import { filterActividades, barriosUnicos, esEditable, inicioDeMes, finDeMes } from './lib/dashboardFilters';
+import { mensajeDeError } from '../../utils/errorMessage';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -21,7 +22,7 @@ const BADGE_POR_ESTADO: Record<ActividadStatus, string> = {
 
 const ETIQUETA_POR_ESTADO: Record<ActividadStatus, string> = {
   BORRADOR: 'Borrador',
-  ENVIADA: 'En validacion',
+  ENVIADA: 'Enviada',
   APROBADA: 'Aprobada',
   RECHAZADA: 'Rechazada',
   PUBLICADA: 'Publicada',
@@ -35,6 +36,7 @@ export const GestorDashboard: React.FC = () => {
   const [actividades, setActividades] = useState<Actividad[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [stats, setStats] = useState({ enviada: 0, aprobada: 0, rechazada: 0 });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,6 +45,7 @@ export const GestorDashboard: React.FC = () => {
   const [turnoFilter, setTurnoFilter] = useState<'' | 'DIURNO' | 'NOCTURNO'>('');
   const [desdeFilter, setDesdeFilter] = useState(inicioDeMes());
   const [hastaFilter, setHastaFilter] = useState(finDeMes());
+  const [intentoCarga, setIntentoCarga] = useState(0);
 
   // listMine ya filtra por el gestor autenticado del lado del servidor - esta
   // pantalla no ofrece ninguna forma de pedir actividades de otro gestor.
@@ -60,11 +63,13 @@ export const GestorDashboard: React.FC = () => {
         if (!vigente) return;
         setActividades(respuesta.data || []);
         setTotal(respuesta.total || 0);
+        setErrorCarga(null);
       })
-      .catch(() => {
+      .catch((err) => {
         if (!vigente) return;
         setActividades([]);
         setTotal(0);
+        setErrorCarga(mensajeDeError(err));
       })
       .finally(() => {
         if (vigente) setLoading(false);
@@ -72,7 +77,7 @@ export const GestorDashboard: React.FC = () => {
     return () => {
       vigente = false;
     };
-  }, [desdeFilter, hastaFilter, currentPage]);
+  }, [desdeFilter, hastaFilter, currentPage, intentoCarga]);
 
   useEffect(() => {
     let vigente = true;
@@ -81,13 +86,15 @@ export const GestorDashboard: React.FC = () => {
       .then((respuesta) => {
         if (vigente) setStats(respuesta);
       })
-      .catch(() => {
-        if (vigente) setStats({ enviada: 0, aprobada: 0, rechazada: 0 });
+      .catch((err) => {
+        if (!vigente) return;
+        setStats({ enviada: 0, aprobada: 0, rechazada: 0 });
+        setErrorCarga((previo) => previo ?? mensajeDeError(err));
       });
     return () => {
       vigente = false;
     };
-  }, [desdeFilter, hastaFilter]);
+  }, [desdeFilter, hastaFilter, intentoCarga]);
 
   const barrios = useMemo(() => barriosUnicos(actividades), [actividades]);
   const totalPaginas = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
@@ -100,6 +107,9 @@ export const GestorDashboard: React.FC = () => {
   const hayFiltrosActivos = Boolean(
     statusFilter || barrioFilter || turnoFilter || desdeFilter !== inicioDeMes() || hastaFilter !== finDeMes(),
   );
+
+  // Fuerza que los dos efectos de carga vuelvan a correr sin tocar los filtros.
+  const reintentar = () => setIntentoCarga((n) => n + 1);
 
   const limpiarFiltros = () => {
     setStatusFilter('');
@@ -128,7 +138,10 @@ export const GestorDashboard: React.FC = () => {
             <p className="text-2xl font-bold text-primary">{stats.enviada}</p>
           </div>
           <div className="card">
-            <p className="card-subtitle">Aprobadas</p>
+            {/* El backend devuelve el conteo de PUBLICADA bajo la clave
+                `aprobada`: aprobar publica directo, el estado APROBADA no se
+                alcanza. El rotulo sigue al dato, no a la clave. */}
+            <p className="card-subtitle">Publicadas</p>
             <p className="text-2xl font-bold text-success">{stats.aprobada}</p>
           </div>
           <div className="card">
@@ -154,8 +167,9 @@ export const GestorDashboard: React.FC = () => {
           </div>
           <div className="filters-grid">
             <div className="filter-group">
-              <label className="input-label">Estado</label>
+              <label className="input-label" htmlFor="filtro-estado">Estado</label>
               <select
+                id="filtro-estado"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as ActividadStatus | '')}
                 className="select-field"
@@ -167,8 +181,8 @@ export const GestorDashboard: React.FC = () => {
               </select>
             </div>
             <div className="filter-group">
-              <label className="input-label">Barrio</label>
-              <select value={barrioFilter} onChange={(e) => setBarrioFilter(e.target.value)} className="select-field">
+              <label className="input-label" htmlFor="filtro-barrio">Barrio</label>
+              <select id="filtro-barrio" value={barrioFilter} onChange={(e) => setBarrioFilter(e.target.value)} className="select-field">
                 <option value="">Todos los barrios</option>
                 {barrios.map((b) => (
                   <option key={b} value={b}>
@@ -178,8 +192,9 @@ export const GestorDashboard: React.FC = () => {
               </select>
             </div>
             <div className="filter-group">
-              <label className="input-label">Turno</label>
+              <label className="input-label" htmlFor="filtro-turno">Turno</label>
               <select
+                id="filtro-turno"
                 value={turnoFilter}
                 onChange={(e) => setTurnoFilter(e.target.value as '' | 'DIURNO' | 'NOCTURNO')}
                 className="select-field"
@@ -190,8 +205,9 @@ export const GestorDashboard: React.FC = () => {
               </select>
             </div>
             <div className="filter-group">
-              <label className="input-label">Desde</label>
+              <label className="input-label" htmlFor="filtro-desde">Desde</label>
               <input
+                id="filtro-desde"
                 type="date"
                 className="input-field"
                 value={desdeFilter}
@@ -202,8 +218,9 @@ export const GestorDashboard: React.FC = () => {
               />
             </div>
             <div className="filter-group">
-              <label className="input-label">Hasta</label>
+              <label className="input-label" htmlFor="filtro-hasta">Hasta</label>
               <input
+                id="filtro-hasta"
                 type="date"
                 className="input-field"
                 value={hastaFilter}
@@ -236,7 +253,17 @@ export const GestorDashboard: React.FC = () => {
             </div>
           </div>
 
-          {actividadesFiltradas.length === 0 ? (
+          {errorCarga ? (
+            // Un fallo de carga NO puede verse como "no tienes actividades": el
+            // gestor concluiria que perdio su trabajo.
+            <div className="empty-state" role="alert">
+              <p className="empty-state-title text-red-700">No se pudieron cargar tus actividades</p>
+              <p className="empty-state-description">{errorCarga}</p>
+              <button type="button" className="btn-success mt-4 inline-flex" onClick={reintentar}>
+                Reintentar
+              </button>
+            </div>
+          ) : actividadesFiltradas.length === 0 ? (
             <div className="empty-state">
               <p className="empty-state-title">
                 {actividades.length === 0 ? 'Aun no tienes actividades registradas' : 'Sin resultados para estos filtros'}
@@ -253,7 +280,46 @@ export const GestorDashboard: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="table-container">
+            <>
+              {/* Vista movil - tarjetas. La app se usa en terreno desde el
+                  telefono; la tabla con scroll horizontal no la reemplaza. */}
+              <div className="md:hidden space-y-3" data-testid="lista-movil">
+                {actividadesFiltradas.map((a) => (
+                  <div key={a.id} className="p-4 rounded-2xl border border-neutral-100 hover:shadow-card transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <span className="text-xs font-bold text-amber-700">{getActivityCode(a)}</span>
+                        <p className="text-sm text-neutral-500">
+                          {format(new Date(a.dateTime), 'dd MMM yyyy, HH:mm', { locale: es })}
+                        </p>
+                      </div>
+                      <span className={BADGE_POR_ESTADO[a.status]}>{ETIQUETA_POR_ESTADO[a.status]}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-neutral-600 mb-3">
+                      <span>{a.barrio}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          a.isNightShift ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700'
+                        }`}
+                      >
+                        {a.isNightShift ? 'Nocturno' : 'Diurno'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link to={`/gestor/actividad/${a.id}`} className="btn-secondary btn-sm flex-1 justify-center">
+                        Ver detalles
+                      </Link>
+                      {esEditable(a) && (
+                        <Link to={`/gestor/editar-actividad/${a.id}`} className="btn-success btn-sm flex-1 justify-center">
+                          Editar
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block table-container">
               <table className="table">
                 <thead className="table-header">
                   <tr>
@@ -291,7 +357,8 @@ export const GestorDashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
 
           {actividadesFiltradas.length > 0 && (

@@ -13,9 +13,12 @@ describe('getNavItems', () => {
     expect(items.map((i) => i.to)).toEqual(['/validador/dashboard']);
   });
 
-  it('el administrador ve las tres rutas del modulo', () => {
+  // El panel del gestor es "mis propias actividades" y el backend lo restringe
+  // a GESTOR_ESPACIO_PUBLICO. Ofrecerselo al ADMIN seria un item que solo
+  // lleva a un 403.
+  it('el administrador ve validacion y administracion, no el panel del gestor', () => {
     const items = getNavItems('ADMIN');
-    expect(items.map((i) => i.to)).toEqual(['/gestor/dashboard', '/validador/dashboard', '/admin']);
+    expect(items.map((i) => i.to)).toEqual(['/validador/dashboard', '/admin']);
   });
 
   it('un rol sin nav definida no rompe: devuelve lista vacia', () => {

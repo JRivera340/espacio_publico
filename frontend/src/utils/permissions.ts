@@ -15,15 +15,20 @@ export const RUTA_POR_ROL: Record<Role, string> = {
   ADMIN: '/admin',
 };
 
-// Roles permitidos por ruta protegida. El ADMIN entra a todas porque valida
-// y administra por encima de gestor y validador (ver navItems). Las tres
-// rutas de gestor ademas de dashboard son las pantallas de registro, edicion
-// y detalle de una actividad - mismo rol que el dashboard.
+// Roles permitidos por ruta protegida. Tiene que coincidir con los @Roles del
+// backend: si aca entra un rol que alla se rechaza, el usuario llega a una
+// pantalla que solo sabe devolver 403.
+//
+// Las rutas de gestor son SOLO del gestor, ADMIN incluido. El backend las
+// restringe a GESTOR_ESPACIO_PUBLICO (GET /actividades/mine, mine/stats y
+// POST /actividades) porque son "mis propias actividades": para un ADMIN, que
+// no registra actividades, la pantalla siempre estaria vacia. El ADMIN ve todo
+// desde /admin. Las de validador si lo incluyen, igual que el backend.
 export const ROUTE_ACCESS: Record<string, Role[]> = {
-  '/gestor/dashboard': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
-  '/gestor/crear-actividad': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
-  '/gestor/editar-actividad/:id': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
-  '/gestor/actividad/:id': ['GESTOR_ESPACIO_PUBLICO', 'ADMIN'],
+  '/gestor/dashboard': ['GESTOR_ESPACIO_PUBLICO'],
+  '/gestor/crear-actividad': ['GESTOR_ESPACIO_PUBLICO'],
+  '/gestor/editar-actividad/:id': ['GESTOR_ESPACIO_PUBLICO'],
+  '/gestor/actividad/:id': ['GESTOR_ESPACIO_PUBLICO'],
   '/validador/dashboard': ['VALIDADOR_ESPACIO_PUBLICO', 'ADMIN'],
   '/admin': ['ADMIN'],
 };

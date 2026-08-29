@@ -15,9 +15,9 @@ const GESTOR_ITEM: NavItem = { key: 'gestor', label: 'Mis actividades', icon: 'h
 const VALIDADOR_ITEM: NavItem = { key: 'validador', label: 'Validacion', icon: 'route', to: RUTA_POR_ROL.VALIDADOR_ESPACIO_PUBLICO };
 const ADMIN_ITEM: NavItem = { key: 'admin', label: 'Administracion', icon: 'user', to: RUTA_POR_ROL.ADMIN };
 
-// Nav recortada a las pantallas de este modulo (espacio publico). El ADMIN
-// entra a las tres porque valida y administra por encima de los otros roles;
-// gestor y validador solo ven su propio flujo.
+// Nav recortada a las pantallas de este modulo (espacio publico). Cada rol ve
+// solo lo que ROUTE_ACCESS le permite: el ADMIN no lleva el item de gestor
+// porque esa pantalla es de las actividades propias y el backend se la niega.
 export function getNavItems(role: Role): NavItem[] {
   switch (role) {
     case 'GESTOR_ESPACIO_PUBLICO':
@@ -25,7 +25,7 @@ export function getNavItems(role: Role): NavItem[] {
     case 'VALIDADOR_ESPACIO_PUBLICO':
       return [VALIDADOR_ITEM];
     case 'ADMIN':
-      return [GESTOR_ITEM, VALIDADOR_ITEM, ADMIN_ITEM];
+      return [VALIDADOR_ITEM, ADMIN_ITEM];
     default:
       return [];
   }
