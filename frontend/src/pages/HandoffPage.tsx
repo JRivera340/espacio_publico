@@ -21,7 +21,7 @@ function decodeJwtPayload(token: string): { sub: string; email: string; role: st
 export const HandoffPage: React.FC = () => {
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
-  const [status, setStatus] = useState<'procesando' | 'error' | 'sin-destino'>('procesando');
+  const [status, setStatus] = useState<'procesando' | 'error' | 'rol-no-permitido'>('procesando');
   const [identity, setIdentity] = useState<{ email: string; role: string } | null>(null);
   // React.StrictMode invoca los efectos dos veces en desarrollo. La primera
   // corrida procesa el token y limpia el hash con replaceState; sin este
@@ -72,6 +72,20 @@ export const HandoffPage: React.FC = () => {
       return;
     }
 
+    // El backend del handoff solo verifica firma y expiracion, no el rol - y
+    // el secreto de firma se comparte con el hub y con otros modulos, asi que
+    // un token de CUALQUIER rol del sistema (incluido ESTUDIANTE, menores de
+    // edad) es criptograficamente valido aca. La puerta de rol es este
+    // modulo: si el rol no es uno de los tres que maneja RUTA_POR_ROL, no se
+    // guarda la sesion. Guardarla dejaria un token completo de un rol ajeno
+    // en sessionStorage aunque no haya pantalla que lo use.
+    const esRolDelModulo = Object.prototype.hasOwnProperty.call(RUTA_POR_ROL, payload.role);
+    if (!esRolDelModulo) {
+      setIdentity({ email: payload.email, role: payload.role });
+      setStatus('rol-no-permitido');
+      return;
+    }
+
     // El JWT del hub no trae name/lastname (solo sub/email/role) - placeholder
     // minimo hasta que haya un endpoint propio para resolver identidad completa.
     const user: User = {
@@ -83,17 +97,7 @@ export const HandoffPage: React.FC = () => {
     };
 
     login(token, user);
-
-    const destino = (RUTA_POR_ROL as Record<string, string>)[payload.role];
-    if (destino) {
-      navigate(destino, { replace: true });
-      return;
-    }
-
-    // Rol sin pantalla propia todavia - se queda en esta pantalla minima con
-    // un mensaje que lo explique, en vez de navegar a una ruta que no existe.
-    setIdentity({ email: payload.email, role: payload.role });
-    setStatus('sin-destino');
+    navigate(RUTA_POR_ROL[user.role], { replace: true });
   }, [login, navigate]);
 
   if (status === 'procesando') {
@@ -123,13 +127,23 @@ export const HandoffPage: React.FC = () => {
 
   return (
     <div style={{ padding: 40, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700 }}>Sesion iniciada</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700 }}>Este rol no tiene acceso al modulo</h1>
       <p style={{ marginTop: 8 }}>Usuario: <strong>{identity?.email}</strong></p>
       <p>Rol: <strong>{identity?.role}</strong></p>
       <p style={{ color: '#666', marginTop: 16 }}>
-        Este rol todavia no tiene un panel propio en el modulo de espacio publico -
-        no hay ninguna pantalla a la que redirigir.
+        El modulo de espacio publico no tiene pantallas para este rol. No se
+        guardo ninguna sesion aca.
       </p>
+      <button
+        onClick={irAlLoginDelHub}
+        style={{
+          marginTop: 20, padding: '10px 18px', background: '#dc2626', color: 'white',
+          border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}
+      >
+        Ir al inicio de sesion
+      </button>
     </div>
   );
 };

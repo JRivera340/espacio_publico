@@ -78,6 +78,16 @@ describe('HandoffPage', () => {
     expect(window.location.hash).toBe('');
   });
 
+  it('un rol ajeno al modulo no queda autenticado y no guarda sesion', async () => {
+    // ESTUDIANTE es un rol valido del sistema (el token es criptograficamente
+    // correcto) pero sin lugar en este modulo. La sesion no debe guardarse.
+    window.location.hash = `#token=${tokenFalso('ESTUDIANTE')}`;
+    montar();
+    await waitFor(() => expect(screen.getByText(/no tiene acceso al modulo/i)).toBeDefined());
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(sessionStorage.getItem('ep_auth_token')).toBeNull();
+  });
+
   it('limpia el fragmento aunque la url tambien traiga ?error=', async () => {
     // El backend nunca produce esta combinacion (redirige a ?error= o a
     // #token=, nunca a los dos), pero el token no puede depender de que

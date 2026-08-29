@@ -4,6 +4,8 @@ import { useAuthStore } from './store/authStore';
 import { HandoffPage } from './pages/HandoffPage';
 import { irAlLoginDelHub } from './config/hub';
 import { AppShell } from './components/shell/AppShell';
+import { RUTA_POR_ROL, ROUTE_ACCESS } from './utils/permissions';
+import type { Role } from './types';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -12,8 +14,23 @@ import { AppShell } from './components/shell/AppShell';
 // instrucciones de dev.
 const esEntornoDesplegado = Boolean(import.meta.env.VITE_EP_API_URL);
 
-function RutaProtegida({ children }: { children: React.ReactNode }) {
+// Pantalla para un rol autenticado que no tiene permiso sobre esta ruta y
+// tampoco tiene un destino propio al que mandarlo (caso de borde: no deberia
+// pasar en produccion porque HandoffPage ya filtra por rol antes de guardar
+// sesion, pero si el rol en sessionStorage no coincide con ninguna ruta del
+// modulo, mejor esto que una pantalla en blanco).
+function SinAcceso() {
+  return (
+    <div style={{ padding: 40, textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700 }}>No tenes acceso a esta seccion</h1>
+      <p style={{ color: '#666', marginTop: 8 }}>Tu rol no tiene permiso para ver este contenido.</p>
+    </div>
+  );
+}
+
+function RutaProtegida({ children, roles }: { children: React.ReactNode; roles: Role[] }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const role = useAuthStore((s) => s.user?.role);
   React.useEffect(() => {
     // Va al login pidiendo cierre de sesion tambien en el hub. Si solo se
     // mandara a `/login`, el hub veia su sesion viva, saltaba el formulario y
@@ -37,6 +54,16 @@ function RutaProtegida({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  // Autenticado pero sin permiso para esta ruta puntual (ej: un
+  // VALIDADOR_ESPACIO_PUBLICO escribiendo /admin en la barra). Se lo manda a
+  // su propio destino en vez de dejarlo ver el contenido ajeno.
+  if (role && !roles.includes(role)) {
+    const destinoPropio = (RUTA_POR_ROL as Record<string, string>)[role];
+    if (destinoPropio) return <Navigate to={destinoPropio} replace />;
+    return <SinAcceso />;
+  }
+
   return <AppShell>{children}</AppShell>;
 }
 
@@ -49,15 +76,15 @@ function App() {
 
       <Route
         path="/gestor/dashboard"
-        element={<RutaProtegida><div>Dashboard del gestor</div></RutaProtegida>}
+        element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/dashboard']}><div>Dashboard del gestor</div></RutaProtegida>}
       />
       <Route
         path="/validador/dashboard"
-        element={<RutaProtegida><div>Dashboard del validador</div></RutaProtegida>}
+        element={<RutaProtegida roles={ROUTE_ACCESS['/validador/dashboard']}><div>Dashboard del validador</div></RutaProtegida>}
       />
       <Route
         path="/admin"
-        element={<RutaProtegida><div>Panel de administracion</div></RutaProtegida>}
+        element={<RutaProtegida roles={ROUTE_ACCESS['/admin']}><div>Panel de administracion</div></RutaProtegida>}
       />
 
       {/* Cualquier ruta sin match (ej: un navigate() a una ruta que ya no
