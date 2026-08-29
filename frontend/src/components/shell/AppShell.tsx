@@ -5,6 +5,7 @@ import { InstitutionalHeader } from './InstitutionalHeader';
 import { SideNav } from './SideNav';
 import { BottomNav } from './BottomNav';
 import { getNavItems } from './navItems';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -32,7 +33,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             largos, listados paginados) suelen ser mas altas que el viewport. Con
             overflow-hidden el contenido se recorta sin scroll y sin error visible -
             el boton de guardar quedaba inalcanzable. */}
-        <div className="flex-1 flex flex-col overflow-y-auto">{children}</div>
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          {/* Una excepcion de render adentro no debe tirar abajo el header ni
+              la navegacion - sin esto, cualquier pantalla que truene deja al
+              usuario en una pagina en blanco sin salida. */}
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </div>
       </div>
 
       <div className="md:hidden">
