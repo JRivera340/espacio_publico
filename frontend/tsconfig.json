@@ -4,7 +4,12 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"],
+    // sin "node" aca: esta config compila codigo de navegador y "npm run
+    // build" corre "tsc" contra ella. Si "node" entra aca, un uso accidental
+    // de process/Buffer/__dirname en src pasa el chequeo de tipos y recien
+    // explota en el navegador del funcionario. Los tests que leen del disco
+    // usan tsconfig.test.json, que agrega "node" solo para ese ambito.
+    "types": ["vite/client"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -21,5 +26,9 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },
-  "include": ["src"]
+  "include": ["src"],
+  // los .test.ts no pasan por "tsc" del build: vitest los transpila con
+  // esbuild y no chequea tipos. Los tipos de sus imports de node se
+  // verifican aparte con tsconfig.test.json.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

@@ -1,0 +1,13 @@
+{
+  // config aparte solo para chequear tipos de los tests. Los tests corren
+  // con vitest (esbuild, sin chequeo de tipos), pero permissions.test.ts lee
+  // App.tsx del disco con node:fs y necesita los tipos de "node" para eso.
+  // Esos tipos no pueden vivir en tsconfig.json porque ese es el que usa
+  // "npm run build" para compilar el codigo que corre en el navegador.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src"],
+  "exclude": []
+}
