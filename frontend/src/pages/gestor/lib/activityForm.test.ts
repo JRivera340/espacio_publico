@@ -10,6 +10,8 @@ import {
   faltantesObligatorias,
   buildFieldMeta,
   esPreguntaDeActa,
+  aInputDatetimeLocal,
+  respuestasDesdeActividad,
   type EntradaFormularioActividad,
 } from './activityForm';
 import type { SurveyQuestion } from '../../../services/survey.service';
@@ -334,5 +336,39 @@ describe('la pregunta del acta no se lleva por delante otros adjuntos', () => {
   it('ese otro adjunto sigue exigiendose si es obligatorio', () => {
     const { errores } = construirDtoActividad(entradaValida({ preguntas: [otroAdjunto], respuestas: {} }));
     expect(errores.join(' ')).toMatch(/Anexo tecnico/i);
+  });
+});
+
+describe('aInputDatetimeLocal', () => {
+  it('devuelve la hora local, no la UTC', () => {
+    const iso = new Date(2026, 7, 20, 15, 30).toISOString();
+    expect(aInputDatetimeLocal(iso)).toBe('2026-08-20T15:30');
+  });
+
+  it('devuelve vacio ante una fecha invalida en vez de romper la pantalla', () => {
+    expect(aInputDatetimeLocal('no es una fecha')).toBe('');
+  });
+});
+
+describe('respuestasDesdeActividad', () => {
+  const preguntas: SurveyQuestion[] = [
+    { id: 'uuid-1', type: 'NUMBER', name: 'comparendos', label: 'Comparendos' },
+    { id: 'uuid-2', type: 'NUMBER', name: 'cambuches', label: 'Cambuches' },
+  ];
+
+  it('reindexa por id lo que estaba guardado por nombre tecnico', () => {
+    expect(respuestasDesdeActividad(preguntas, { comparendos: 7, cambuches: 0 })).toEqual({
+      'uuid-1': 7,
+      'uuid-2': 0,
+    });
+  });
+
+  it('ignora las claves que no corresponden a ninguna pregunta', () => {
+    const respuestas = respuestasDesdeActividad(preguntas, { comparendos: 7, tipo: 'ESPACIO_PUBLICO_1801' });
+    expect(respuestas).toEqual({ 'uuid-1': 7 });
+  });
+
+  it('sin respuestas guardadas devuelve un objeto vacio', () => {
+    expect(respuestasDesdeActividad(preguntas, null)).toEqual({});
   });
 });

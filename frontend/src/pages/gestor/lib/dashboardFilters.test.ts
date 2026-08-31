@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterActividades, barriosUnicos, esEditable, inicioDeMes, finDeMes } from './dashboardFilters';
+import { filterActividades, barriosUnicos, esEditable, puedeEditar, inicioDeMes, finDeMes } from './dashboardFilters';
 import type { Actividad } from '../../../types';
 
 function actividad(overrides: Partial<Actividad> = {}): Actividad {
@@ -78,5 +78,22 @@ describe('inicioDeMes / finDeMes', () => {
     const fecha = new Date(2026, 7, 15); // 15 de agosto de 2026
     expect(inicioDeMes(fecha)).toBe('2026-08-01');
     expect(finDeMes(fecha)).toBe('2026-08-31');
+  });
+});
+
+describe('puedeEditar', () => {
+  it('solo el autor puede corregir su actividad rechazada', () => {
+    expect(puedeEditar({ status: 'RECHAZADA', createdByUserId: 'g1' }, 'g1')).toBe(true);
+    expect(puedeEditar({ status: 'RECHAZADA', createdByUserId: 'g2' }, 'g1')).toBe(false);
+  });
+
+  it('ningun otro estado se corrige, ni siquiera siendo el autor', () => {
+    expect(puedeEditar({ status: 'ENVIADA', createdByUserId: 'g1' }, 'g1')).toBe(false);
+    expect(puedeEditar({ status: 'APROBADA', createdByUserId: 'g1' }, 'g1')).toBe(false);
+    expect(puedeEditar({ status: 'BORRADOR', createdByUserId: 'g1' }, 'g1')).toBe(false);
+  });
+
+  it('sin usuario identificado no se corrige nada', () => {
+    expect(puedeEditar({ status: 'RECHAZADA', createdByUserId: 'g1' }, undefined)).toBe(false);
   });
 });

@@ -258,3 +258,37 @@ export function construirDtoActividad(
 
   return { errores: [], dto };
 }
+
+// Valor para un input datetime-local a partir de la fecha ISO que devuelve la
+// API. Se resta el desfase horario ANTES de recortar: toISOString() habla en
+// UTC, asi que recortarlo directo le corre la hora al gestor (en Bogota, cinco
+// horas adelante de lo que registro).
+export function aInputDatetimeLocal(valorIso: string): string {
+  const fecha = new Date(valorIso);
+  if (Number.isNaN(fecha.getTime())) return '';
+  const desfase = fecha.getTimezoneOffset() * 60000;
+  return new Date(fecha.getTime() - desfase).toISOString().slice(0, 16);
+}
+
+// Vuelve del formato guardado al formato que usa la pantalla.
+//
+// En la actividad las respuestas viven bajo el NOMBRE TECNICO de cada pregunta
+// (asi las guarda construirDtoActividad y asi las busca el visor publico),
+// pero el renderer del formulario dinamico las indexa por el ID de la pregunta.
+// Sin esta traduccion la pantalla de correccion abre vacia: el gestor ve cero
+// en todas las cifras y las reenvia borradas sin que nada avise.
+export function respuestasDesdeActividad(
+  questions: SurveyQuestion[],
+  dynamicAnswers: Record<string, any> | null | undefined,
+): Record<string, any> {
+  if (!dynamicAnswers) return {};
+  const porId: Record<string, any> = {};
+  for (const pregunta of questions) {
+    // Se acepta tambien la clave por id para no perder las actividades que se
+    // hayan guardado antes de que la indexacion por nombre existiera.
+    const valor = dynamicAnswers[pregunta.name ?? ''] ?? dynamicAnswers[pregunta.id];
+    if (valor === undefined) continue;
+    porId[pregunta.id] = valor;
+  }
+  return porId;
+}

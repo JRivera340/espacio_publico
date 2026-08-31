@@ -46,3 +46,16 @@ function formatearFecha(d: Date): string {
   const dia = String(d.getDate()).padStart(2, '0');
   return `${anio}-${mes}-${dia}`;
 }
+
+// Permiso de edicion de la pantalla de correccion: una actividad se corrige
+// solo si esta RECHAZADA y es del propio gestor. Reusa esEditable en vez de
+// repetir el criterio de estado: si manana cambia que estados se corrigen, el
+// dashboard y la pantalla de edicion no pueden opinar distinto.
+export function puedeEditar(
+  actividad: Pick<Actividad, 'status' | 'createdByUserId'>,
+  userId: string | undefined,
+): boolean {
+  if (!userId) return false;
+  if (actividad.createdByUserId !== userId) return false;
+  return esEditable(actividad);
+}
