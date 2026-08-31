@@ -7,26 +7,12 @@ import { Loading } from '../../components/Loading';
 import { Pagination } from '../../components/Pagination';
 import type { Actividad, ActividadStatus } from '../../types';
 import { getActivityCode } from '../../utils/activityCode';
+import { BADGE_POR_ESTADO, ETIQUETA_POR_ESTADO } from '../../components/StatusBadge';
 import { filterActividades, barriosUnicos, esEditable, inicioDeMes, finDeMes } from './lib/dashboardFilters';
 import { mensajeDeError } from '../../utils/errorMessage';
 
 const ITEMS_PER_PAGE = 10;
 
-const BADGE_POR_ESTADO: Record<ActividadStatus, string> = {
-  BORRADOR: 'badge-borrador',
-  ENVIADA: 'badge-enviada',
-  APROBADA: 'badge-aprobada',
-  RECHAZADA: 'badge-rechazada',
-  PUBLICADA: 'badge-publicada',
-};
-
-const ETIQUETA_POR_ESTADO: Record<ActividadStatus, string> = {
-  BORRADOR: 'Borrador',
-  ENVIADA: 'Enviada',
-  APROBADA: 'Aprobada',
-  RECHAZADA: 'Rechazada',
-  PUBLICADA: 'Publicada',
-};
 
 // Panel del gestor de espacio publico: sus propias actividades, nada mas.
 // El area es fija (1801 - Espacio Publico), asi que a diferencia del

@@ -10,6 +10,7 @@ import { Toast } from './components/Toast';
 import { GestorDashboard } from './pages/gestor/GestorDashboard';
 import { CreateActivity } from './pages/gestor/CreateActivity';
 import { EditActivity } from './pages/gestor/EditActivity';
+import { ActivityDetail } from './components/ActivityDetail';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -121,7 +122,7 @@ function App() {
         />
         <Route
           path="/gestor/actividad/:id"
-          element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/actividad/:id']}><div>Detalle de actividad</div></RutaProtegida>}
+          element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/actividad/:id']}><ActivityDetail /></RutaProtegida>}
         />
         <Route
           path="/validador/dashboard"
