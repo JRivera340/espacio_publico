@@ -15,6 +15,7 @@ import { CronogramaPage } from './pages/gestor/CronogramaPage';
 import { ValidadorDashboard } from './pages/validador/ValidadorDashboard';
 import { ValidarActividadPage } from './pages/validador/ValidarActividadPage';
 import { ProgramacionPage } from './pages/validador/ProgramacionPage';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -146,7 +147,7 @@ function App() {
         />
         <Route
           path="/admin"
-          element={<RutaProtegida roles={ROUTE_ACCESS['/admin']}><div>Panel de administracion</div></RutaProtegida>}
+          element={<RutaProtegida roles={ROUTE_ACCESS['/admin']}><AdminDashboard /></RutaProtegida>}
         />
 
         {/* Cualquier ruta sin match (ej: un navigate() a una ruta que ya no

@@ -81,6 +81,17 @@ export const activityService = {
     return normalizeActividad(data);
   },
 
+  // VALIDADOR y ADMIN: informe en Excel.
+  //
+  // Va como blob a proposito: si axios lo trata como texto, el archivo llega
+  // corrupto y el error recien aparece al abrirlo en Excel.
+  async descargarInforme(filters?: ActividadFilters): Promise<Blob> {
+    const { data } = await api.get(`/actividades/report-xlsx${buildQuery(filters)}`, {
+      responseType: 'blob',
+    });
+    return data as Blob;
+  },
+
   // GESTOR: ver mis actividades
   async listMine(filters?: ActividadFilters): Promise<PaginatedResponse<Actividad>> {
     const { data } = await api.get<PaginatedResponse<Actividad>>(`/actividades/mine${buildQuery(filters)}`);

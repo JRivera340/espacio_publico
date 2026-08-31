@@ -7,6 +7,7 @@ import { mensajeDeError } from '../../utils/errorMessage';
 import { getActivityCode } from '../../utils/activityCode';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Loading } from '../../components/Loading';
+import { DescargarInforme } from '../../components/DescargarInforme';
 import type { Actividad } from '../../types';
 
 type Pestana = 'pendientes' | 'validadas';
@@ -66,10 +67,11 @@ export const ValidadorDashboard = () => {
             <p className="card-subtitle">Validadas por mi</p>
             <p className="text-2xl font-bold text-success">{validadas.length}</p>
           </div>
-          <div className="card flex items-center">
+          <div className="card flex flex-col justify-center gap-2">
             <Link to="/validador/programacion" className="btn-success btn-sm w-full justify-center">
               Cargar programacion
             </Link>
+            <DescargarInforme />
           </div>
         </div>
 

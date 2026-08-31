@@ -21,6 +21,7 @@ vi.mock('./services/activity.service', () => ({
     misEstadisticas: vi.fn().mockResolvedValue({ enviada: 0, aprobada: 0, rechazada: 0 }),
     listPending: vi.fn().mockResolvedValue({ data: [], total: 0 }),
     listMyValidations: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+    listAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
   },
 }));
 
@@ -73,7 +74,7 @@ describe('RutaProtegida - control de acceso por rol', () => {
     await waitFor(() => expect(screen.getByText(/panel del gestor/i)).toBeDefined());
   });
 
-  it('el admin si puede ver el panel de administracion', () => {
+  it('el admin si puede ver el panel de administracion', async () => {
     useAuthStore.getState().login('tok', {
       id: 'u-1', name: 'admin@ejemplo.com', lastname: '',
       email: 'admin@ejemplo.com', role: 'ADMIN',
@@ -85,7 +86,7 @@ describe('RutaProtegida - control de acceso por rol', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/panel de administracion/i)).toBeDefined();
+    expect(await screen.findByText(/indicadores del area/i)).toBeDefined();
   });
 });
 
