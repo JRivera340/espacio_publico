@@ -255,7 +255,7 @@ export const EditActivity: React.FC = () => {
     );
   };
 
-  const onSubmit = async (data: FormData) => {
+  const guardar = async (data: FormData, reenviar: boolean) => {
     if (!actividad) return;
 
     const { errores, dto } = construirDtoActividad({
@@ -281,17 +281,37 @@ export const EditActivity: React.FC = () => {
     }
 
     setGuardando(true);
+    let guardado = false;
     try {
       // Corregir NUNCA crea una actividad: se actualiza la que ya existe y se
       // reenvia esa misma. Un create aca dejaria dos actividades por el mismo
       // operativo, una rechazada y otra en validacion.
       await activityService.update(actividad.id, dto);
+      guardado = true;
+
+      if (!reenviar) {
+        setToast({
+          message: 'Cambios guardados. La actividad sigue rechazada hasta que la reenvies a validacion.',
+          type: 'success',
+        });
+        return;
+      }
+
       await activityService.send(actividad.id);
       setToast({ message: 'Actividad corregida y reenviada a validacion', type: 'success' });
       setTimeout(() => navigate('/gestor/dashboard'), 1500);
     } catch (err) {
       const motivo = mensajeDeError(err);
-      if (motivo) setToast({ message: motivo, type: 'error' });
+      if (motivo) {
+        // Distinguir los dos fallos importa: con los cambios ya guardados, el
+        // gestor solo tiene que reintentar el reenvio, no rehacer la correccion.
+        setToast({
+          message: guardado
+            ? `Los cambios quedaron guardados pero no se pudo reenviar a validacion: ${motivo}`
+            : motivo,
+          type: 'error',
+        });
+      }
     } finally {
       setGuardando(false);
     }
@@ -373,7 +393,7 @@ export const EditActivity: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        <form onSubmit={handleSubmit((data) => guardar(data, true))} className="space-y-6" noValidate>
           <section className="card space-y-5">
             <div className="card-header">
               <h2 className="card-title">Datos del operativo</h2>
@@ -605,9 +625,22 @@ export const EditActivity: React.FC = () => {
             </section>
           )}
 
-          <button type="submit" disabled={guardando || !schema} className="btn-success btn-lg w-full justify-center">
-            {guardando ? 'Guardando...' : 'Guardar y reenviar a validacion'}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button type="submit" disabled={guardando || !schema} className="btn-success btn-lg flex-1 justify-center">
+              {guardando ? 'Guardando...' : 'Guardar y reenviar a validacion'}
+            </button>
+            {/* Guardar sin reenviar existe para no perder una correccion a
+                medio hacer: esto se usa en terreno, desde el telefono. El texto
+                dice que sigue rechazada para que nadie crea que ya respondio. */}
+            <button
+              type="button"
+              disabled={guardando || !schema}
+              onClick={handleSubmit((data) => guardar(data, false))}
+              className="btn-secondary btn-lg flex-1 justify-center"
+            >
+              Guardar sin reenviar
+            </button>
+          </div>
         </form>
       </main>
 

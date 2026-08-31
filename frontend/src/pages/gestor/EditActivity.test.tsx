@@ -213,4 +213,27 @@ describe('EditActivity', () => {
     expect(dto.dynamicAnswers.comparendos).toBe(7);
     expect(dto.dynamicAnswers['uuid-comparendos']).toBeUndefined();
   });
+  // Guardar sin reenviar existe para no perder una correccion a medio hacer.
+  // Tiene que dejar claro que la actividad sigue rechazada: si el gestor cree
+  // que ya respondio el rechazo, su trabajo se queda esperando para siempre.
+  it('guardar sin reenviar actualiza pero no manda a validacion', async () => {
+    renderPantalla();
+    await screen.findByLabelText(/Descripcion de lo realizado/);
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar sin reenviar/i }));
+
+    await waitFor(() => expect(activityService.update).toHaveBeenCalledTimes(1));
+    expect(activityService.send).not.toHaveBeenCalled();
+    expect(await screen.findByText(/sigue rechazada/i)).toBeDefined();
+  });
+
+  it('si se guardo pero fallo el reenvio, lo dice en vez de pedir rehacer todo', async () => {
+    (activityService.send as any).mockRejectedValue(new Error('boom'));
+    renderPantalla();
+    await screen.findByLabelText(/Descripcion de lo realizado/);
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar y reenviar/i }));
+
+    expect(await screen.findByText(/quedaron guardados pero no se pudo reenviar/i)).toBeDefined();
+  });
 });
