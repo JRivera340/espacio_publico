@@ -10,6 +10,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { activityService } from '../../services/activity.service';
 import { catalogService } from '../../services/catalog.service';
 import { surveyService, type SurveySchema } from '../../services/survey.service';
+import { usersService, type GestorResumen } from '../../services/users.service';
 import { AREAS_CATALOG, SUBCATEGORY_MAPPING } from '../../config/areasCatalog';
 import { detectarBarrio } from '../../utils/boundaryValidation';
 import { mensajeDeError } from '../../utils/errorMessage';
@@ -22,6 +23,7 @@ import { BarriosLayer } from '../../components/BarriosLayer';
 import { MapLayerControl, type LayerVisibility } from '../../components/MapLayerControl';
 import { DynamicSurveyRenderer } from '../../components/DynamicSurveyRenderer';
 import { construirDtoActividad, preguntasDinamicas } from './lib/activityForm';
+import { useAuthStore } from '../../store/authStore';
 import type { Catalogs } from '../../types';
 
 const CENTRO_LOCALIDAD: [number, number] = [4.6097, -74.0817];
@@ -91,11 +93,16 @@ export const CreateActivity: React.FC = () => {
   const [actaUrl, setActaUrl] = useState('');
   const [entidadesAcompanantes, setEntidadesAcompanantes] = useState<string[]>([]);
 
+  const [gestores, setGestores] = useState<GestorResumen[]>([]);
+  const [errorGestores, setErrorGestores] = useState<string | null>(null);
+  const [gestoresSeleccionados, setGestoresSeleccionados] = useState<string[]>([]);
+  const idUsuarioActual = useAuthStore((s) => s.user?.id);
+
   const [enviando, setEnviando] = useState(false);
   const [borradorPendienteId, setBorradorPendienteId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const { register, handleSubmit } = useForm<FormData>({
+  const { register, handleSubmit, watch } = useForm<FormData>({
     defaultValues: { fechaHora: ahoraLocal(), descripcion: '', entidadResponsable: '', enGrupo: false },
   });
 
@@ -131,6 +138,42 @@ export const CreateActivity: React.FC = () => {
       vigente = false;
     };
   }, []);
+
+  // La lista de gestores se pide APARTE de los catalogos y la encuesta, y su
+  // fallo se traga a proposito. Es un dato auxiliar: el proxy de usuarios
+  // depende del hub, y si el hub no responde el gestor tiene que poder
+  // registrar igual el operativo, sin acompanantes, en vez de quedar bloqueado.
+  useEffect(() => {
+    let vigente = true;
+
+    usersService
+      .listarGestores()
+      .then((lista) => {
+        if (!vigente) return;
+        setGestores(lista);
+        setErrorGestores(null);
+      })
+      .catch(() => {
+        if (!vigente) return;
+        setGestores([]);
+        setErrorGestores(
+          'No se pudo cargar la lista de gestores. Puedes registrar el operativo sin acompanantes.',
+        );
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  // El propio gestor nunca es un acompanante: ya queda como autor de la
+  // actividad. Ofrecerlo lo dejaria dos veces en el mismo operativo.
+  const posiblesAcompanantes = useMemo(
+    () => gestores.filter((g) => g.id !== idUsuarioActual),
+    [gestores, idUsuarioActual],
+  );
+
+  const enGrupo = watch('enGrupo');
 
   const preguntasVisibles = useMemo(
     () => (schema ? preguntasDinamicas(schema.questions) : []),
@@ -190,6 +233,7 @@ export const CreateActivity: React.FC = () => {
       entidadResponsable: data.entidadResponsable,
       entidadesAcompanantes,
       enGrupo: Boolean(data.enGrupo),
+      gestoresInvolucradosIds: gestoresSeleccionados,
     });
 
     if (!dto) {
@@ -340,6 +384,51 @@ export const CreateActivity: React.FC = () => {
                 El operativo se realizo en grupo
               </label>
             </div>
+
+            {enGrupo && (
+              <fieldset className="space-y-2">
+                <legend className="input-label font-semibold">Gestores acompanantes</legend>
+                {errorGestores && (
+                  <p className="text-xs text-amber-700" role="alert">
+                    {errorGestores}
+                  </p>
+                )}
+                {!errorGestores && posiblesAcompanantes.length === 0 && (
+                  <p className="text-xs text-neutral-500">
+                    No hay otros gestores del area para seleccionar.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {posiblesAcompanantes.map((gestor) => {
+                    const marcado = gestoresSeleccionados.includes(gestor.id);
+                    return (
+                      <label
+                        key={gestor.id}
+                        htmlFor={`gestor-${gestor.id}`}
+                        className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg border cursor-pointer ${
+                          marcado
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'bg-white border-neutral-200 text-neutral-600'
+                        }`}
+                      >
+                        <input
+                          id={`gestor-${gestor.id}`}
+                          type="checkbox"
+                          checked={marcado}
+                          onChange={() =>
+                            setGestoresSeleccionados((previos) =>
+                              marcado ? previos.filter((id) => id !== gestor.id) : [...previos, gestor.id],
+                            )
+                          }
+                          className="w-3.5 h-3.5"
+                        />
+                        {gestor.nombre}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
           </section>
 
           <section className="card space-y-4">

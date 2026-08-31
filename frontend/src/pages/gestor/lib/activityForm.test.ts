@@ -37,6 +37,7 @@ function entradaValida(cambios: Partial<EntradaFormularioActividad> = {}): Entra
     entidadResponsable: 'ALCALDIA LOCAL DE SANTA FE',
     entidadesAcompanantes: ['POLICIA NACIONAL'],
     enGrupo: false,
+    gestoresInvolucradosIds: [],
     ...cambios,
   };
 }
@@ -260,6 +261,32 @@ describe('construirDtoActividad', () => {
     );
     expect(dto!.dynamicAnswers!.entidad_responsable).toBe('ALCALDIA LOCAL DE SANTA FE');
     expect(dto!.dynamicAnswers!['q-entidad']).toBeUndefined();
+  });
+
+  // El backend usa gestoresInvolucradosIds para autorizar la lectura de la
+  // actividad a los gestores que la hicieron juntos. Si la lista viaja vacia,
+  // esa regla existe y nadie la alimenta.
+  it('lleva al DTO los gestores acompanantes de un operativo en grupo', () => {
+    const { dto } = construirDtoActividad(
+      entradaValida({ enGrupo: true, gestoresInvolucradosIds: ['u1', 'u2'] }),
+    );
+    expect(dto!.isGroupOperativo).toBe(true);
+    expect(dto!.gestoresInvolucradosIds).toEqual(['u1', 'u2']);
+  });
+
+  it('deja la lista de acompanantes vacia si el operativo no fue en grupo', () => {
+    const { dto } = construirDtoActividad(
+      entradaValida({ enGrupo: false, gestoresInvolucradosIds: ['u1'] }),
+    );
+    expect(dto!.isGroupOperativo).toBe(false);
+    expect(dto!.gestoresInvolucradosIds).toEqual([]);
+  });
+
+  it('no repite un mismo gestor en la lista', () => {
+    const { dto } = construirDtoActividad(
+      entradaValida({ enGrupo: true, gestoresInvolucradosIds: ['u1', 'u1', 'u2'] }),
+    );
+    expect(dto!.gestoresInvolucradosIds).toEqual(['u1', 'u2']);
   });
 });
 

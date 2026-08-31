@@ -137,6 +137,13 @@ export interface EntradaFormularioActividad {
   entidadResponsable: string;
   entidadesAcompanantes: string[];
   enGrupo: boolean;
+  /**
+   * Ids de los gestores que acompanaron el operativo. Es obligatorio pasarlo
+   * —aunque sea vacio— porque el backend usa esta lista para autorizar la
+   * lectura de la actividad a quienes la hicieron juntos: si viaja vacia sin
+   * que nadie lo note, los acompanantes no pueden abrir su propia actividad.
+   */
+  gestoresInvolucradosIds: string[];
 }
 
 export interface ResultadoFormularioActividad {
@@ -234,6 +241,9 @@ export function construirDtoActividad(
     isNightShift: esTurnoNocturno(fechaISO),
     shift: esTurnoNocturno(fechaISO) ? 'NOCTURNO' : 'DIURNO',
     isGroupOperativo: entrada.enGrupo,
+    // Sin operativo en grupo no hay acompanantes: la lista viaja vacia aunque
+    // haya quedado una seleccion previa en pantalla.
+    gestoresInvolucradosIds: entrada.enGrupo ? [...new Set(entrada.gestoresInvolucradosIds)] : [],
     actaPdfUrl: entrada.actaUrl,
     actaOperativo: `ACTA_${technicalSubtipo}`,
     entidadResponsable: entrada.entidadResponsable,

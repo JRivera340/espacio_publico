@@ -6,7 +6,9 @@ import { CreateActivity } from './CreateActivity';
 import { activityService } from '../../services/activity.service';
 import { catalogService } from '../../services/catalog.service';
 import { surveyService } from '../../services/survey.service';
+import { usersService } from '../../services/users.service';
 import { detectarBarrio } from '../../utils/boundaryValidation';
+import { useAuthStore } from '../../store/authStore';
 
 // Handler que el mapa registra al montarse. El test lo dispara para simular que
 // el gestor toco el mapa, sin montar Leaflet de verdad.
@@ -57,9 +59,26 @@ vi.mock('../../services/catalog.service', () => ({
 vi.mock('../../services/survey.service', () => ({
   surveyService: { getSurvey: vi.fn() },
 }));
+vi.mock('../../services/users.service', () => ({
+  usersService: { listarGestores: vi.fn() },
+}));
 vi.mock('../../utils/boundaryValidation', () => ({
   detectarBarrio: vi.fn(),
 }));
+
+const GESTOR_ACTUAL = {
+  id: 'g-actual',
+  name: 'Rosa',
+  lastname: 'Diaz',
+  email: 'rosa@ejemplo.gov',
+  role: 'GESTOR_ESPACIO_PUBLICO' as const,
+};
+
+const OTROS_GESTORES = [
+  { id: 'g-actual', nombre: 'Rosa Diaz' },
+  { id: 'g-2', nombre: 'Ana Perez' },
+  { id: 'g-3', nombre: 'Luis Mora' },
+];
 
 const ENCUESTA = {
   id: 's1',
@@ -114,6 +133,8 @@ describe('CreateActivity', () => {
     (detectarBarrio as any).mockResolvedValue('LA MACARENA');
     (activityService.create as any).mockResolvedValue({ id: 'a1' });
     (activityService.send as any).mockResolvedValue({ id: 'a1' });
+    (usersService.listarGestores as any).mockResolvedValue(OTROS_GESTORES);
+    useAuthStore.getState().login('tok', GESTOR_ACTUAL);
   });
 
   it('pide el formulario dinamico de la unica subcategoria del area', async () => {
@@ -240,5 +261,64 @@ describe('CreateActivity', () => {
 
     expect(activityService.create).toHaveBeenCalledTimes(1);
     expect((activityService.send as any).mock.calls[1][0]).toBe('a1');
+  });
+
+  // El backend autoriza la lectura de una actividad a los gestores que figuran
+  // en gestoresInvolucradosIds. Antes de esto la casilla "en grupo" se guardaba
+  // pero la lista viajaba siempre vacia: los acompanantes no podian abrir la
+  // actividad que habian hecho juntos, y nada avisaba.
+  it('lleva al DTO los gestores acompanantes seleccionados', async () => {
+    renderPantalla();
+    await completarFormulario();
+
+    fireEvent.click(screen.getByLabelText(/El operativo se realizo en grupo/));
+    fireEvent.click(await screen.findByLabelText('Ana Perez'));
+    fireEvent.click(screen.getByLabelText('Luis Mora'));
+
+    fireEvent.click(screen.getByRole('button', { name: /Finalizar registro/ }));
+
+    await waitFor(() => expect(activityService.create).toHaveBeenCalledTimes(1));
+    const dto = (activityService.create as any).mock.calls[0][0];
+    expect(dto.isGroupOperativo).toBe(true);
+    expect(dto.gestoresInvolucradosIds).toEqual(['g-2', 'g-3']);
+  });
+
+  it('no ofrece al propio gestor como acompanante: ya es el autor', async () => {
+    renderPantalla();
+    await screen.findByLabelText(/Fecha y hora/);
+
+    fireEvent.click(screen.getByLabelText(/El operativo se realizo en grupo/));
+
+    await screen.findByLabelText('Ana Perez');
+    expect(screen.queryByLabelText('Rosa Diaz')).toBeNull();
+  });
+
+  it('sin marcar el operativo en grupo la lista de acompanantes va vacia', async () => {
+    renderPantalla();
+    await completarFormulario();
+
+    fireEvent.click(screen.getByRole('button', { name: /Finalizar registro/ }));
+
+    await waitFor(() => expect(activityService.create).toHaveBeenCalledTimes(1));
+    const dto = (activityService.create as any).mock.calls[0][0];
+    expect(dto.isGroupOperativo).toBe(false);
+    expect(dto.gestoresInvolucradosIds).toEqual([]);
+  });
+
+  // El proxy de usuarios depende del hub. Es un dato auxiliar: si no responde,
+  // el gestor tiene que poder registrar igual en vez de quedar bloqueado.
+  it('deja registrar sin acompanantes si el proxy de usuarios esta caido', async () => {
+    (usersService.listarGestores as any).mockRejectedValue(new Error('502'));
+    renderPantalla();
+    await completarFormulario();
+
+    fireEvent.click(screen.getByLabelText(/El operativo se realizo en grupo/));
+    await screen.findByText(/No se pudo cargar la lista de gestores/);
+
+    fireEvent.click(screen.getByRole('button', { name: /Finalizar registro/ }));
+
+    await waitFor(() => expect(activityService.create).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(activityService.send).toHaveBeenCalledWith('a1'));
+    expect((activityService.create as any).mock.calls[0][0].gestoresInvolucradosIds).toEqual([]);
   });
 });
