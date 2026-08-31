@@ -11,6 +11,10 @@ import { GestorDashboard } from './pages/gestor/GestorDashboard';
 import { CreateActivity } from './pages/gestor/CreateActivity';
 import { EditActivity } from './pages/gestor/EditActivity';
 import { ActivityDetail } from './components/ActivityDetail';
+import { CronogramaPage } from './pages/gestor/CronogramaPage';
+import { ValidadorDashboard } from './pages/validador/ValidadorDashboard';
+import { ValidarActividadPage } from './pages/validador/ValidarActividadPage';
+import { ProgramacionPage } from './pages/validador/ProgramacionPage';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -125,8 +129,20 @@ function App() {
           element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/actividad/:id']}><ActivityDetail /></RutaProtegida>}
         />
         <Route
+          path="/gestor/cronograma"
+          element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/cronograma']}><CronogramaPage /></RutaProtegida>}
+        />
+        <Route
           path="/validador/dashboard"
-          element={<RutaProtegida roles={ROUTE_ACCESS['/validador/dashboard']}><div>Dashboard del validador</div></RutaProtegida>}
+          element={<RutaProtegida roles={ROUTE_ACCESS['/validador/dashboard']}><ValidadorDashboard /></RutaProtegida>}
+        />
+        <Route
+          path="/validador/actividad/:id"
+          element={<RutaProtegida roles={ROUTE_ACCESS['/validador/actividad/:id']}><ValidarActividadPage /></RutaProtegida>}
+        />
+        <Route
+          path="/validador/programacion"
+          element={<RutaProtegida roles={ROUTE_ACCESS['/validador/programacion']}><ProgramacionPage /></RutaProtegida>}
         />
         <Route
           path="/admin"

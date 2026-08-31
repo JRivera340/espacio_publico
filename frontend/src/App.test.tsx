@@ -19,6 +19,16 @@ vi.mock('./services/activity.service', () => ({
   activityService: {
     listMine: vi.fn().mockResolvedValue({ data: [], total: 0 }),
     misEstadisticas: vi.fn().mockResolvedValue({ enviada: 0, aprobada: 0, rechazada: 0 }),
+    listPending: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+    listMyValidations: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+  },
+}));
+
+// El panel del validador y el de programacion tambien piden datos al montarse.
+vi.mock('./services/programacion.service', () => ({
+  programacionService: {
+    listar: vi.fn().mockResolvedValue([]),
+    mias: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -31,7 +41,7 @@ describe('RutaProtegida - control de acceso por rol', () => {
     useAuthStore.getState().logout();
   });
 
-  it('un validador autenticado no ve el panel de administracion: se lo manda a su propio dashboard', () => {
+  it('un validador autenticado no ve el panel de administracion: se lo manda a su propio dashboard', async () => {
     useAuthStore.getState().login('tok', {
       id: 'u-1', name: 'validador@ejemplo.com', lastname: '',
       email: 'validador@ejemplo.com', role: 'VALIDADOR_ESPACIO_PUBLICO',
@@ -44,7 +54,7 @@ describe('RutaProtegida - control de acceso por rol', () => {
     );
 
     expect(screen.queryByText(/panel de administracion/i)).toBeNull();
-    expect(screen.getByText(/dashboard del validador/i)).toBeDefined();
+    expect((await screen.findAllByText(/esperando validacion/i)).length).toBeGreaterThan(0);
   });
 
   it('un gestor autenticado no ve el dashboard del validador: se lo manda al propio', async () => {
@@ -59,7 +69,7 @@ describe('RutaProtegida - control de acceso por rol', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByText(/dashboard del validador/i)).toBeNull();
+    expect(screen.queryAllByText(/esperando validacion/i)).toHaveLength(0);
     await waitFor(() => expect(screen.getByText(/panel del gestor/i)).toBeDefined());
   });
 

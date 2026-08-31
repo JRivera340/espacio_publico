@@ -5,12 +5,12 @@ import type { Role } from '../../types';
 describe('getNavItems', () => {
   it('el gestor de espacio publico solo ve su propio panel', () => {
     const items = getNavItems('GESTOR_ESPACIO_PUBLICO');
-    expect(items.map((i) => i.to)).toEqual(['/gestor/dashboard']);
+    expect(items.map((i) => i.to)).toEqual(['/gestor/dashboard', '/gestor/cronograma']);
   });
 
   it('el validador de espacio publico solo ve su propio panel', () => {
     const items = getNavItems('VALIDADOR_ESPACIO_PUBLICO');
-    expect(items.map((i) => i.to)).toEqual(['/validador/dashboard']);
+    expect(items.map((i) => i.to)).toEqual(['/validador/dashboard', '/validador/programacion']);
   });
 
   // El panel del gestor es "mis propias actividades" y el backend lo restringe
@@ -18,7 +18,7 @@ describe('getNavItems', () => {
   // lleva a un 403.
   it('el administrador ve validacion y administracion, no el panel del gestor', () => {
     const items = getNavItems('ADMIN');
-    expect(items.map((i) => i.to)).toEqual(['/validador/dashboard', '/admin']);
+    expect(items.map((i) => i.to)).toEqual(['/validador/dashboard', '/validador/programacion', '/admin']);
   });
 
   it('un rol sin nav definida no rompe: devuelve lista vacia', () => {

@@ -50,6 +50,37 @@ export const activityService = {
     return normalizeActividad(data);
   },
 
+  // VALIDADOR: actividades esperando validacion
+  async listPending(filters?: ActividadFilters): Promise<PaginatedResponse<Actividad>> {
+    const { data } = await api.get<PaginatedResponse<Actividad>>(`/actividades/pending${buildQuery(filters)}`);
+    return unwrapPaginated(data);
+  },
+
+  // VALIDADOR: lo que ya valide
+  async listMyValidations(filters?: ActividadFilters): Promise<PaginatedResponse<Actividad>> {
+    const { data } = await api.get<PaginatedResponse<Actividad>>(`/actividades/my-validations${buildQuery(filters)}`);
+    return unwrapPaginated(data);
+  },
+
+  // VALIDADOR y ADMIN: todas las actividades del area
+  async listAll(filters?: ActividadFilters): Promise<PaginatedResponse<Actividad>> {
+    const { data } = await api.get<PaginatedResponse<Actividad>>(`/actividades${buildQuery(filters)}`);
+    return unwrapPaginated(data);
+  },
+
+  // VALIDADOR: aprobar. selectedPhotos son las fotos que SI se publican; las
+  // que no elija no salen al visor publico.
+  async approve(id: string, notes?: string, selectedPhotos?: string[]): Promise<Actividad> {
+    const { data } = await api.post<Actividad>(`/actividades/${id}/approve`, { notes, selectedPhotos });
+    return normalizeActividad(data);
+  },
+
+  // VALIDADOR: rechazar. La nota es lo unico que le dice al gestor que corregir.
+  async reject(id: string, notes: string): Promise<Actividad> {
+    const { data } = await api.post<Actividad>(`/actividades/${id}/reject`, { notes });
+    return normalizeActividad(data);
+  },
+
   // GESTOR: ver mis actividades
   async listMine(filters?: ActividadFilters): Promise<PaginatedResponse<Actividad>> {
     const { data } = await api.get<PaginatedResponse<Actividad>>(`/actividades/mine${buildQuery(filters)}`);
