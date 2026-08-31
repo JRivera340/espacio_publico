@@ -69,10 +69,9 @@ export const PhotosUpload = ({ onUploadSuccess, existingUrls = [], activityId, d
     setPreviews([previewUrl]);
 
     try {
-      const response = await filesService.uploadFoto([file], activityId);
+      const response = await filesService.uploadFoto(file);
       // Agregar la nueva foto a las existentes en lugar de reemplazarlas
-      const newUrls = response.keys || response.urls;
-      const allUrls = [...existingUrls, ...newUrls];
+      const allUrls = [...existingUrls, response.url];
       onUploadSuccess(allUrls);
       setSuccess('Foto subida exitosamente');
       setTimeout(() => setSuccess(null), 3000);

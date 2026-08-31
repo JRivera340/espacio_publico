@@ -28,6 +28,9 @@ const CENTRO_LOCALIDAD: [number, number] = [4.6097, -74.0817];
 
 // El area tiene un unico frente de trabajo, asi que no hay desplegable de
 // categoria ni de subtipo: el valor sale del catalogo y se muestra fijo.
+// Igual que el @MaxLength del DTO del backend.
+const MAX_DESCRIPCION = 10000;
+
 const SUBTIPO_DISPLAY = SUBCATEGORY_MAPPING[AREAS_CATALOG[0].subtipos[0].enum];
 
 const iconoMarcador = new Icon({
@@ -89,6 +92,7 @@ export const CreateActivity: React.FC = () => {
   const [entidadesAcompanantes, setEntidadesAcompanantes] = useState<string[]>([]);
 
   const [enviando, setEnviando] = useState(false);
+  const [borradorPendienteId, setBorradorPendienteId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const { register, handleSubmit } = useForm<FormData>({
@@ -194,11 +198,17 @@ export const CreateActivity: React.FC = () => {
     }
 
     setEnviando(true);
-    let idCreada: string | null = null;
+    // El id vive en estado, no en una variable local: si el borrador se creo y
+    // fallo el envio, al reintentar hay que enviar ESE borrador y no crear otro
+    // con la misma evidencia.
+    let idCreada: string | null = borradorPendienteId;
     try {
-      const creada = await activityService.create(dto);
-      idCreada = creada.id;
-      await activityService.send(creada.id);
+      if (!idCreada) {
+        const creada = await activityService.create(dto);
+        idCreada = creada.id;
+        setBorradorPendienteId(creada.id);
+      }
+      await activityService.send(idCreada);
       setToast({ message: 'Actividad registrada y enviada a validacion', type: 'success' });
       setTimeout(() => navigate('/gestor/dashboard'), 1500);
     } catch (err) {
@@ -281,9 +291,12 @@ export const CreateActivity: React.FC = () => {
               <label className="input-label font-semibold" htmlFor="descripcion">
                 Descripcion de lo realizado <span className="text-red-500">*</span>
               </label>
+              {/* El backend rechaza mas de 10000 con un 400. Cortar aca evita
+                  que el gestor descubra el limite despues de subir fotos y acta. */}
               <textarea
                 id="descripcion"
                 rows={4}
+                maxLength={MAX_DESCRIPCION}
                 className="input-field"
                 placeholder="Que se hizo, con quien y con que resultado"
                 {...register('descripcion')}

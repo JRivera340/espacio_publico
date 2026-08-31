@@ -46,11 +46,18 @@ export const NOMBRES_CAMPOS_FIJOS = [
   'en_grupo',
 ];
 
+// Identifica la pregunta del acta para sacarla del formulario dinamico: el acta
+// tiene su propio control fijo y es obligatoria siempre.
+//
+// Se mira SOLO el nombre tecnico y la etiqueta. La version anterior tambien
+// tomaba cualquier pregunta que aceptara PDF, y eso se lleva por delante a
+// cualquier otro adjunto: la pregunta desaparece de la pantalla Y de la
+// validacion de obligatorias, asi que un campo obligatorio dejaria de exigirse
+// sin ninguna senal.
 export function esPreguntaDeActa(q: SurveyQuestion): boolean {
   const nombre = (q.name || '').toLowerCase();
   const etiqueta = (q.label || '').toLowerCase();
-  const acepta = q.config?.accept ? String(q.config.accept).toLowerCase() : '';
-  return nombre.includes('acta') || etiqueta.includes('acta') || acepta.includes('pdf');
+  return nombre.includes('acta') || etiqueta.includes('acta');
 }
 
 // Preguntas que quedan para el formulario dinamico: las que no cubre ningun
@@ -198,9 +205,21 @@ export function construirDtoActividad(
     entidades_acompanantes: entrada.entidadesAcompanantes,
     en_grupo: entrada.enGrupo,
   };
-  for (const [nombre, valor] of Object.entries(respuestasFijas)) {
-    const pregunta = preguntaPorNombre(entrada.preguntas, nombre);
-    if (pregunta) respuestasFijas[pregunta.id] = valor;
+  // Ya estan bajo su nombre tecnico, que es como los busca el visor publico y
+  // como los espera la exportacion.
+
+  // Las respuestas se indexan por el NOMBRE TECNICO de cada pregunta, no por su
+  // id. El id es un uuid del microservicio de encuestas; la lista de permitidos
+  // del visor publico (public-fields.ts del backend) busca por nombre tecnico,
+  // asi que guardar por id publica CERO cifras: el saneamiento no encuentra
+  // ninguna clave y devuelve null, sin error visible en ningun lado.
+  // Verificado 2026-08-29 contra el microservicio: la pregunta trae `id` uuid y
+  // `name` con el nombre tecnico ('comparendos', 'cambuches', ...).
+  const respuestasPorNombre: Record<string, any> = {};
+  for (const pregunta of entrada.preguntas) {
+    const valor = entrada.respuestas[pregunta.id];
+    if (valor === undefined) continue;
+    respuestasPorNombre[pregunta.name || pregunta.id] = valor;
   }
 
   const dto: CreateActividadDTO = {
@@ -221,7 +240,7 @@ export function construirDtoActividad(
     entidadesAcompanantes: entrada.entidadesAcompanantes,
     dynamicAnswers: {
       tipo: technicalSubtipo,
-      ...entrada.respuestas,
+      ...respuestasPorNombre,
       ...respuestasFijas,
       __fieldMeta: buildFieldMeta(entrada.preguntas),
     },

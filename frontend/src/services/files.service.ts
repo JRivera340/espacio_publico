@@ -1,53 +1,39 @@
 import api from './api';
 
-export interface UploadActaResponse {
-  success: boolean;
+// El backend sube UN archivo por peticion: `FileInterceptor('file')` en
+// files.controller.ts, y responde { key, url }. El campo del formulario tiene
+// que llamarse `file` exactamente: con cualquier otro nombre multer no
+// encuentra nada y el controller responde 400.
+//
+// No se fija Content-Type a mano. El navegador tiene que ponerlo el solo para
+// incluir el `boundary` del multipart; escribirlo sin boundary deja al backend
+// sin poder separar las partes.
+export interface UploadResponse {
   key: string;
   url: string;
-  message: string;
-}
-
-export interface UploadFotoResponse {
-  success: boolean;
-  keys: string[];
-  urls: string[];
-  count: number;
-  message: string;
 }
 
 export const filesService = {
-  // Sube un acta (PDF) para una actividad
-  async uploadActa(file: File, activityId?: string): Promise<UploadActaResponse> {
+  /** Sube el acta (PDF) de una actividad. */
+  async uploadActa(file: File): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    if (activityId) {
-      formData.append('activityId', activityId);
-    }
 
-    // Timeout amplio para conexiones moviles lentas (5 minutos)
-    const { data } = await api.post<UploadActaResponse>('/files/upload-acta', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    // Timeout amplio para conexiones moviles lentas: se usa en terreno.
+    const { data } = await api.post<UploadResponse>('/files/upload-acta', formData, {
       timeout: 5 * 60 * 1000,
     });
-
     return data;
   },
 
-  // Sube una o mas fotos para una actividad
-  async uploadFoto(files: File[], activityId?: string): Promise<UploadFotoResponse> {
+  /** Sube una foto de evidencia. */
+  async uploadFoto(file: File): Promise<UploadResponse> {
     const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
-    if (activityId) {
-      formData.append('activityId', activityId);
-    }
+    formData.append('file', file);
 
-    const { data } = await api.post<UploadFotoResponse>('/files/upload', formData, {
-      headers: { 'Content-Type': undefined },
+    const { data } = await api.post<UploadResponse>('/files/upload', formData, {
       timeout: 5 * 60 * 1000,
     });
-
     return data;
   },
 };

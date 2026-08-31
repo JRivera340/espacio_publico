@@ -62,7 +62,7 @@ export const ActaUpload = ({ onUploadSuccess, existingUrl, activityId, disabled 
     setUploading(true);
 
     try {
-      const response = await filesService.uploadActa(file, activityId);
+      const response = await filesService.uploadActa(file);
       onUploadSuccess(response.url);
       setSuccess('Acta subida exitosamente');
       setTimeout(() => setSuccess(null), 3000);

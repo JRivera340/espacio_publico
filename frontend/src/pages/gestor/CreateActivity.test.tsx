@@ -223,4 +223,22 @@ describe('CreateActivity', () => {
     await screen.findByText(/No hay un formulario activo/);
     expect((screen.getByRole('button', { name: /Finalizar registro/ }) as HTMLButtonElement).disabled).toBe(true);
   });
+  // Al reintentar tras un envio fallido no puede crearse un segundo borrador
+  // con la misma evidencia: el gestor terminaria con dos actividades gemelas y
+  // el validador sin saber cual es la buena.
+  it('al reintentar envia el borrador que ya existe, sin crear otro', async () => {
+    (activityService.send as any).mockRejectedValueOnce(new Error('boom')).mockResolvedValue({ id: 'a1' });
+    renderPantalla();
+    await completarFormulario();
+
+    const boton = screen.getByRole('button', { name: /Finalizar registro/ });
+    fireEvent.click(boton);
+    await screen.findByText(/quedo guardada como borrador/);
+
+    fireEvent.click(boton);
+    await waitFor(() => expect(activityService.send).toHaveBeenCalledTimes(2));
+
+    expect(activityService.create).toHaveBeenCalledTimes(1);
+    expect((activityService.send as any).mock.calls[1][0]).toBe('a1');
+  });
 });

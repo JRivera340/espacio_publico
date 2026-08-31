@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import {
   construirDtoActividad,
   esTurnoNocturno,
@@ -6,6 +9,7 @@ import {
   preguntasDinamicas,
   faltantesObligatorias,
   buildFieldMeta,
+  esPreguntaDeActa,
   type EntradaFormularioActividad,
 } from './activityForm';
 import type { SurveyQuestion } from '../../../services/survey.service';
@@ -82,10 +86,9 @@ describe('preguntasDinamicas', () => {
     expect(preguntasDinamicas(preguntas).map((q) => q.id)).toEqual(['q-cifra']);
   });
 
-  it('reconoce el acta tambien por la etiqueta y por el tipo de archivo aceptado', () => {
+  it('reconoce el acta tambien por la etiqueta', () => {
     const porEtiqueta: SurveyQuestion = { id: 'a1', type: 'FILE', name: 'documento', label: 'Acta firmada' };
-    const porAccept: SurveyQuestion = { id: 'a2', type: 'FILE', name: 'documento', label: 'Soporte', config: { accept: '.pdf' } };
-    expect(preguntasDinamicas([porEtiqueta, porAccept])).toEqual([]);
+    expect(preguntasDinamicas([porEtiqueta])).toEqual([]);
   });
 });
 
@@ -222,10 +225,22 @@ describe('construirDtoActividad', () => {
 
   // El backend guarda el formulario dinamico bajo `dynamicAnswers` y su DTO
   // corre con forbidNonWhitelisted: cualquier otro nombre devuelve 400.
-  it('manda las respuestas del formulario dinamico bajo dynamicAnswers', () => {
+  // El id de la pregunta es un uuid del microservicio de encuestas; el visor
+  // publico busca por NOMBRE TECNICO. Guardar por id publica cero cifras: el
+  // saneamiento no encuentra ninguna clave y devuelve null, sin error visible.
+  it('indexa las respuestas por el nombre tecnico de la pregunta, no por su id', () => {
     const { dto } = construirDtoActividad(entradaValida());
-    expect(dto!.dynamicAnswers!['q-cifra']).toBe(3);
+    expect(dto!.dynamicAnswers!.comparendos).toBe(3);
+    expect(dto!.dynamicAnswers!['q-cifra']).toBeUndefined();
     expect(Object.keys(dto!)).not.toContain('operativoData');
+  });
+
+  it('cae al id solo cuando la pregunta no trae nombre tecnico', () => {
+    const sinNombre: SurveyQuestion = { id: 'q-sin-nombre', type: 'NUMBER', label: 'Sin nombre' };
+    const { dto } = construirDtoActividad(
+      entradaValida({ preguntas: [sinNombre], respuestas: { 'q-sin-nombre': 7 } }),
+    );
+    expect(dto!.dynamicAnswers!['q-sin-nombre']).toBe(7);
   });
 
   it('guarda en dynamicAnswers una copia de las etiquetas de la encuesta', () => {
@@ -233,7 +248,7 @@ describe('construirDtoActividad', () => {
     expect(dto!.dynamicAnswers!.__fieldMeta['q-cifra'].label).toBe('Comparendos');
   });
 
-  it('guarda las respuestas de los controles fijos bajo el id de su pregunta', () => {
+  it('guarda las respuestas de los controles fijos bajo su nombre tecnico', () => {
     const preguntaEntidad: SurveyQuestion = {
       id: 'q-entidad',
       type: 'ENTITY_SELECT',
@@ -243,7 +258,54 @@ describe('construirDtoActividad', () => {
     const { dto } = construirDtoActividad(
       entradaValida({ preguntas: [preguntaCifra, preguntaEntidad] }),
     );
-    expect(dto!.dynamicAnswers!['q-entidad']).toBe('ALCALDIA LOCAL DE SANTA FE');
     expect(dto!.dynamicAnswers!.entidad_responsable).toBe('ALCALDIA LOCAL DE SANTA FE');
+    expect(dto!.dynamicAnswers!['q-entidad']).toBeUndefined();
+  });
+});
+
+// Regresion atada al dato real: las claves que escribe el formulario tienen que
+// ser las que el visor publico sabe leer. Si divergen, la actividad se publica
+// sin una sola cifra y no falla nada en el camino.
+describe('las claves que se escriben son las que el visor publico permite', () => {
+  it('una cifra del formulario cae dentro de la lista de permitidos del backend', () => {
+    const aca = dirname(fileURLToPath(import.meta.url));
+    const permitidos = readFileSync(resolve(aca, '../../../../../src/publico/public-fields.ts'), 'utf-8');
+
+    const { dto } = construirDtoActividad(entradaValida());
+    const claves = Object.keys(dto!.dynamicAnswers!).filter((k) => k !== 'tipo' && k !== '__fieldMeta');
+    const cifras = claves.filter((k) => typeof dto!.dynamicAnswers![k] === 'number');
+
+    expect(cifras.length).toBeGreaterThan(0);
+    for (const clave of cifras) {
+      expect(permitidos, `${clave} no esta en la lista de permitidos del visor publico`).toContain(`'${clave}'`);
+    }
+  });
+});
+
+// Un adjunto PDF que no sea el acta tiene que seguir en el formulario. Si se lo
+// oculta, ademas de no poder cargarlo, deja de exigirse aunque sea obligatorio.
+describe('la pregunta del acta no se lleva por delante otros adjuntos', () => {
+  const otroAdjunto: SurveyQuestion = {
+    id: 'q-anexo',
+    type: 'FILE',
+    name: 'anexo_tecnico',
+    label: 'Anexo tecnico',
+    required: true,
+    config: { accept: '.pdf' },
+  };
+
+  it('reconoce el acta por su nombre o etiqueta', () => {
+    expect(esPreguntaDeActa({ id: 'a', type: 'FILE', name: 'acta_operativo', label: 'x' })).toBe(true);
+    expect(esPreguntaDeActa({ id: 'b', type: 'FILE', name: 'x', label: 'Acta del operativo' })).toBe(true);
+  });
+
+  it('no confunde con el acta a otro adjunto PDF', () => {
+    expect(esPreguntaDeActa(otroAdjunto)).toBe(false);
+    expect(preguntasDinamicas([otroAdjunto]).map((q) => q.id)).toEqual(['q-anexo']);
+  });
+
+  it('ese otro adjunto sigue exigiendose si es obligatorio', () => {
+    const { errores } = construirDtoActividad(entradaValida({ preguntas: [otroAdjunto], respuestas: {} }));
+    expect(errores.join(' ')).toMatch(/Anexo tecnico/i);
   });
 });
