@@ -1,5 +1,3 @@
-import type { OperativoData } from './operativoFields';
-
 // Solo los roles que entran a este modulo. La identidad la emite el hub.
 export type Role = 'GESTOR_ESPACIO_PUBLICO' | 'VALIDADOR_ESPACIO_PUBLICO' | 'ADMIN';
 
@@ -15,6 +13,8 @@ export type ActividadStatus = 'BORRADOR' | 'ENVIADA' | 'APROBADA' | 'RECHAZADA' 
 
 // Unico subtipo operativo de este modulo.
 export type OperativoSubtipo = 'ESPACIO_PUBLICO_1801';
+
+export type Turno = 'DIURNO' | 'NOCTURNO';
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -52,11 +52,22 @@ export interface Actividad {
   actaOperativo?: string | null;
   actaPdfUrl?: string | null;
 
-  entidadResponsable: string;
+  entidadResponsable?: string | null;
   entidadesAcompanantes: string[];
 
   isNightShift?: boolean;
-  operativoData?: OperativoData;
+  shift?: Turno;
+  isGroupOperativo?: boolean;
+  gestoresInvolucradosIds?: string[];
+
+  // Cifra estructurada propia de los operativos 1801.
+  num_1801?: number | null;
+
+  // Respuestas del formulario dinamico de encuestas, indexadas por el id de
+  // cada pregunta. El backend lo guarda como JSONB libre bajo este nombre: el
+  // DTO corre con forbidNonWhitelisted, asi que mandarlo con cualquier otro
+  // nombre (por ejemplo operativoData, como se llamaba en el hub) devuelve 400.
+  dynamicAnswers?: Record<string, any> | null;
 
   validatorUserId?: string | null;
   validatorName?: string | null;
@@ -90,7 +101,11 @@ export interface CreateActividadDTO {
   entidadResponsable: string;
   entidadesAcompanantes?: string[];
   isNightShift?: boolean;
-  operativoData?: OperativoData;
+  shift?: Turno;
+  isGroupOperativo?: boolean;
+  gestoresInvolucradosIds?: string[];
+  num_1801?: number;
+  dynamicAnswers?: Record<string, any>;
 }
 
 export interface ActividadFilters {

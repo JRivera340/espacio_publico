@@ -8,6 +8,7 @@ import { RUTA_POR_ROL, ROUTE_ACCESS } from './utils/permissions';
 import type { Role } from './types';
 import { Toast } from './components/Toast';
 import { GestorDashboard } from './pages/gestor/GestorDashboard';
+import { CreateActivity } from './pages/gestor/CreateActivity';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -111,7 +112,7 @@ function App() {
         />
         <Route
           path="/gestor/crear-actividad"
-          element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/crear-actividad']}><div>Registrar actividad</div></RutaProtegida>}
+          element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/crear-actividad']}><CreateActivity /></RutaProtegida>}
         />
         <Route
           path="/gestor/editar-actividad/:id"
