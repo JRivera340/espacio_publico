@@ -321,4 +321,20 @@ describe('CreateActivity', () => {
     await waitFor(() => expect(activityService.send).toHaveBeenCalledWith('a1'));
     expect((activityService.create as any).mock.calls[0][0].gestoresInvolucradosIds).toEqual([]);
   });
+  it('al desmarcar el operativo en grupo limpia los acompanantes elegidos', async () => {
+    renderPantalla();
+    await completarFormulario();
+
+    const casillaGrupo = screen.getByLabelText(/en grupo/i);
+    fireEvent.click(casillaGrupo);
+    const gestor = await screen.findByLabelText(/Ana Perez/i);
+    fireEvent.click(gestor);
+    expect((gestor as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(casillaGrupo);
+    fireEvent.click(casillaGrupo);
+
+    const deNuevo = await screen.findByLabelText(/Ana Perez/i);
+    expect((deNuevo as HTMLInputElement).checked).toBe(false);
+  });
 });

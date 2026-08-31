@@ -71,3 +71,18 @@ nadie lo noto porque no falla nada: el saneamiento devuelve null en silencio.
 
 **Esfuerzo:** bajo, pero **es produccion y no es este repo**. Se anota para avisarle al usuario,
 no para arreglarlo desde aca. En el modulo nuevo ya esta corregido y con test de regresion.
+
+---
+
+## Abierta — `gestoresInvolucradosIds` valida como string, pero la columna es `uuid[]`
+
+**Donde:** `src/actividades/dto/create-actividad.dto.ts` y la migracion de la tabla
+
+El DTO valida `@IsString({ each: true })`, pero en Postgres la columna es `uuid array`. Un id
+que no sea UUID pasa la validacion y revienta en el driver.
+
+**Impacto:** en vez de un 400 con un mensaje legible, el gestor recibe un 500 crudo. Hoy no
+ocurre porque los ids los emite el hub y son UUID, asi que es un riesgo latente, no un bug
+activo.
+
+**Esfuerzo:** minimo. Cambiar a `@IsUUID('4', { each: true })`.

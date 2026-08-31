@@ -175,6 +175,13 @@ export const CreateActivity: React.FC = () => {
 
   const enGrupo = watch('enGrupo');
 
+  // Al desmarcar "en grupo" se limpia la seleccion. Si no, quedan casillas
+  // marcadas en pantalla que ya no se envian: el gestor cree que registro
+  // acompanantes y el DTO va vacio.
+  useEffect(() => {
+    if (!enGrupo) setGestoresSeleccionados([]);
+  }, [enGrupo]);
+
   const preguntasVisibles = useMemo(
     () => (schema ? preguntasDinamicas(schema.questions) : []),
     [schema],
