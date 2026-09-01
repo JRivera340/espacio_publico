@@ -16,6 +16,9 @@ import { ValidadorDashboard } from './pages/validador/ValidadorDashboard';
 import { ValidarActividadPage } from './pages/validador/ValidarActividadPage';
 import { ProgramacionPage } from './pages/validador/ProgramacionPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { PublicLanding } from './pages/public/PublicLanding';
+import { PublicMapPage } from './pages/public/PublicMapPage';
+import { PublicPuntoPage } from './pages/public/PublicPuntoPage';
 
 // No hay pagina de login en este repo - la sesion llega desde bogotaneidapp
 // via /handoff. Sin sesion (logout, token vencido, entrada directa sin pasar
@@ -109,7 +112,10 @@ function App() {
         />
       )}
       <Routes>
-        <Route path="/" element={<Navigate to="/handoff" replace />} />
+        {/* Visor publico: sin sesion. La entrada de funcionarios es /handoff. */}
+        <Route path="/" element={<PublicLanding />} />
+        <Route path="/mapa" element={<PublicMapPage />} />
+        <Route path="/jornada/:id" element={<PublicPuntoPage />} />
 
         <Route path="/handoff" element={<HandoffPage />} />
 

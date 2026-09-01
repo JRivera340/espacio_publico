@@ -1,15 +1,32 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 
-// Se envuelve en MemoryRouter desde ahora aunque App todavia no tenga rutas:
-// en la Task 4 las va a tener, y asi este test no hay que reescribirlo.
+// La landing publica pide las cifras al montarse. Se mockea para que el test
+// sea hermetico: sin esto sale por red de verdad.
+vi.mock('./services/publico.service', () => ({
+  publicoService: {
+    cifras: vi.fn().mockResolvedValue({ total: 0, porBarrio: {}, cifras: {} }),
+    listar: vi.fn().mockResolvedValue([]),
+    obtener: vi.fn(),
+  },
+}));
+
 describe('App', () => {
   it('monta sin romper', () => {
-    // Sin hash ni sesion, la raiz redirige a /handoff y ese termina en la
-    // pantalla de error: no hay token que procesar.
+    // La raiz es el visor publico: se ve sin sesion, que es todo el punto.
     render(<MemoryRouter><App /></MemoryRouter>);
+    expect(screen.getByText(/Recuperacion y control del espacio publico/i)).toBeDefined();
+  });
+
+  it('la entrada de funcionarios sigue siendo /handoff', () => {
+    render(
+      <MemoryRouter initialEntries={['/handoff']}>
+        <App />
+      </MemoryRouter>,
+    );
+    // Sin token que procesar, termina en la pantalla de error.
     expect(screen.getByText(/no se pudo iniciar sesion/i)).toBeDefined();
   });
 });
