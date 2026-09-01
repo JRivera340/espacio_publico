@@ -5,14 +5,18 @@ import { ActividadStatus } from '../src/actividades/enums/actividad-status.enum'
 import { OperativoSubtipo } from '../src/actividades/enums/operativo-subtipo.enum';
 import { Turno } from '../src/actividades/enums/turno.enum';
 import { BARRIOS } from '../src/catalogos/barrio.enum';
-import { TEST_IDENTITIES } from '../src/config/test-identities';
+import { resolverIdsDeSeed } from '../src/config/usuarios-prueba';
 import { chequearSeedGuard } from '../src/config/seed-guard';
 
 // Datos enteramente inventados para desarrollo local. Nunca un export de la
 // base real: sin nombres de personas, sin cedulas, coordenadas y barrios
 // dentro de la Localidad Santa Fe tomados de BARRIOS.
-const GESTOR_ID = TEST_IDENTITIES.GESTOR_ESPACIO_PUBLICO.id;
-const VALIDADOR_ID = TEST_IDENTITIES.VALIDADOR_ESPACIO_PUBLICO.id;
+// Dueno de las actividades sembradas. Sin variables de entorno son los uuid
+// fijos de TEST_IDENTITIES, validos solo con tokens firmados a mano en local.
+// Contra una base donde la identidad la emite el hub hay que pasar los ids
+// REALES (SEED_GESTOR_ID / SEED_VALIDADOR_ID), o el gestor entra y ve el panel
+// vacio porque las actividades quedaron a nombre de otro id.
+const { gestorId: GESTOR_ID, validadorId: VALIDADOR_ID } = resolverIdsDeSeed(process.env);
 
 // Coordenadas aproximadas dentro de la Localidad Santa Fe (Bogota).
 const PUNTOS: { barrio: string; lat: number; lng: number }[] = [
