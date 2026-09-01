@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, HttpException, Logger, Post } from '@nestjs/common';
 import { Public } from './decorators/public.decorator';
 import { getEnv } from '../config/env';
+import { extraerTokenDelHub } from './lib/token-del-hub';
 
 /**
  * Ingreso temporal por URL, para poder probar el modulo antes de conectarlo al
@@ -51,8 +52,7 @@ export class IngresoController {
       throw new HttpException(mensaje, respuesta.status === 401 ? 401 : respuesta.status);
     }
 
-    const token = (datos as { access_token?: string; token?: string } | null)?.access_token
-      ?? (datos as { token?: string } | null)?.token;
+    const token = extraerTokenDelHub(datos);
 
     if (!token) {
       this.logger.error('El hub respondio sin token en el cuerpo del login');

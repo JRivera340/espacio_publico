@@ -44,6 +44,21 @@ describe('IngresoController', () => {
     expect(respuesta.access_token).toBe('tok-del-hub');
   });
 
+  // Regresion: el hub responde `accessToken` en camelCase. Mientras esto solo
+  // leia `access_token`, un login correcto (200 del hub) se devolvia como 502 y
+  // nadie podia entrar al modulo.
+  it('acepta el accessToken camelCase que devuelve el hub de verdad', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ accessToken: 'tok-camel', user: { id: 'u1', role: 'GESTOR_ESPACIO_PUBLICO' } }),
+    }) as any;
+
+    const respuesta = await controller.login({ email: 'a@b.co', password: 'x' });
+    expect(respuesta.access_token).toBe('tok-camel');
+    expect(respuesta.user).toEqual({ id: 'u1', role: 'GESTOR_ESPACIO_PUBLICO' });
+  });
+
   it('acepta el token venga como access_token o como token', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
