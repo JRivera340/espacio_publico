@@ -53,7 +53,7 @@ export const PublicLanding = () => {
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           <Link
-            to="/mapa"
+            to="/publico/mapa"
             className="inline-flex items-center justify-center px-5 py-3 rounded-2xl font-bold text-[#14171F]"
             style={{ backgroundColor: AREA.color }}
           >
@@ -111,7 +111,7 @@ export const PublicLanding = () => {
                   {barrios.map(([barrio, total]) => (
                     <Link
                       key={barrio}
-                      to={`/mapa?barrio=${encodeURIComponent(barrio)}`}
+                      to={`/publico/mapa?barrio=${encodeURIComponent(barrio)}`}
                       className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors"
                     >
                       {barrio} <span className="text-neutral-400">({total})</span>
@@ -166,7 +166,7 @@ export const PublicLanding = () => {
       <footer className="border-t border-white/10">
         <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-sm text-neutral-500">Alcaldia Local de Santa Fe</p>
-          <Link to="/handoff" className="text-sm text-neutral-400 hover:text-white transition-colors">
+          <Link to="/ingreso" className="text-sm text-neutral-400 hover:text-white transition-colors">
             Ingreso para funcionarios
           </Link>
         </div>

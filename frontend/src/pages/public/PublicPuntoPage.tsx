@@ -53,7 +53,7 @@ export const PublicPuntoPage = () => {
           <p className="mt-2 text-neutral-600">
             Puede que el enlace este mal escrito, o que la jornada todavia no se haya publicado.
           </p>
-          <Link to="/mapa" className="mt-6 inline-flex font-bold underline">
+          <Link to="/publico/mapa" className="mt-6 inline-flex font-bold underline">
             Ver todas las jornadas
           </Link>
         </div>
@@ -68,7 +68,7 @@ export const PublicPuntoPage = () => {
     <div className="min-h-screen bg-[#EEF1F4]">
       <header className="bg-[#14171F] text-white">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <Link to="/mapa" className="text-sm text-neutral-400 hover:text-white transition-colors">
+          <Link to="/publico/mapa" className="text-sm text-neutral-400 hover:text-white transition-colors">
             Volver al mapa
           </Link>
           <p className="mt-2 text-xs font-bold uppercase tracking-[0.2em]" style={{ color: AREA.color }}>

@@ -15,8 +15,17 @@ vi.mock('./services/publico.service', () => ({
 
 describe('App', () => {
   it('monta sin romper', () => {
-    // La raiz es el visor publico: se ve sin sesion, que es todo el punto.
+    // La raiz es el ingreso: este modulo es la herramienta de trabajo del area.
     render(<MemoryRouter><App /></MemoryRouter>);
+    expect(screen.getByLabelText(/Correo/i)).toBeDefined();
+  });
+
+  it('el visor publico vive aparte, en /publico', () => {
+    render(
+      <MemoryRouter initialEntries={['/publico']}>
+        <App />
+      </MemoryRouter>,
+    );
     expect(screen.getByText(/Recuperacion y control del espacio publico/i)).toBeDefined();
   });
 

@@ -71,7 +71,7 @@ export const PublicMapPage = () => {
       <header className="bg-[#14171F] text-white">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <Link to="/" className="text-sm text-neutral-400 hover:text-white transition-colors">
+            <Link to="/publico" className="text-sm text-neutral-400 hover:text-white transition-colors">
               Volver al inicio
             </Link>
             <h1 className="mt-1 text-2xl font-black">Jornadas de {AREA.nombre}</h1>
@@ -126,7 +126,7 @@ export const PublicMapPage = () => {
                     <Popup>
                       <p className="font-bold">{j.barrio}</p>
                       <p className="text-sm">{format(new Date(j.fecha), "dd 'de' MMMM yyyy", { locale: es })}</p>
-                      <Link to={`/jornada/${j.id}`} className="text-sm underline">
+                      <Link to={`/publico/jornada/${j.id}`} className="text-sm underline">
                         Ver la jornada
                       </Link>
                     </Popup>
@@ -162,7 +162,7 @@ export const PublicMapPage = () => {
                           ))}
                       </ul>
                     )}
-                    <Link to={`/jornada/${j.id}`} className="mt-4 inline-flex text-sm font-bold underline">
+                    <Link to={`/publico/jornada/${j.id}`} className="mt-4 inline-flex text-sm font-bold underline">
                       Ver la jornada
                     </Link>
                   </li>

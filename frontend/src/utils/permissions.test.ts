@@ -71,7 +71,7 @@ describe('espejo con App.tsx', () => {
 
   // Rutas publicas que no pasan por RutaProtegida: no forman parte del mapa
   // rol -> ruta y se excluyen a propósito de la comparacion.
-  const RUTAS_PUBLICAS = new Set(['/', '/mapa', '/jornada/:id', '/handoff', '*']);
+  const RUTAS_PUBLICAS = new Set(['/', '/ingreso', '/publico', '/publico/mapa', '/publico/jornada/:id', '/handoff', '*']);
 
   function rutasDeclaradasEnApp(): string[] {
     const matches = [...appSource.matchAll(/<Route\s+path="([^"]+)"/g)];

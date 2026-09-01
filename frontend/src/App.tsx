@@ -17,6 +17,7 @@ import { ValidarActividadPage } from './pages/validador/ValidarActividadPage';
 import { ProgramacionPage } from './pages/validador/ProgramacionPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { PublicLanding } from './pages/public/PublicLanding';
+import { IngresoPage } from './pages/IngresoPage';
 import { PublicMapPage } from './pages/public/PublicMapPage';
 import { PublicPuntoPage } from './pages/public/PublicPuntoPage';
 
@@ -112,10 +113,14 @@ function App() {
         />
       )}
       <Routes>
-        {/* Visor publico: sin sesion. La entrada de funcionarios es /handoff. */}
-        <Route path="/" element={<PublicLanding />} />
-        <Route path="/mapa" element={<PublicMapPage />} />
-        <Route path="/jornada/:id" element={<PublicPuntoPage />} />
+        {/* La portada es el ingreso: este modulo es la herramienta de trabajo
+            del area. El visor publico vive aparte, en /publico. */}
+        <Route path="/" element={<IngresoPage />} />
+        <Route path="/ingreso" element={<IngresoPage />} />
+
+        <Route path="/publico" element={<PublicLanding />} />
+        <Route path="/publico/mapa" element={<PublicMapPage />} />
+        <Route path="/publico/jornada/:id" element={<PublicPuntoPage />} />
 
         <Route path="/handoff" element={<HandoffPage />} />
 
