@@ -11,9 +11,11 @@ interface InstitutionalHeaderProps {
 export const InstitutionalHeader: React.FC<InstitutionalHeaderProps> = ({ email, onCerrarSesion }) => (
   <header className="shrink-0 flex items-center justify-between bg-white/95 backdrop-blur-md border-b border-neutral-100 shadow-xl px-4 py-2.5 z-[1700]">
     <div className="flex items-center gap-3 min-w-0">
-      <div className="w-9 h-9 rounded-2xl bg-[#F97316] shrink-0 flex items-center justify-center text-white font-black text-sm">
-        EP
-      </div>
+      <img
+        src="/images/alcaldialocalsantafe-sinfondo.png"
+        alt="Alcaldia Local de Santa Fe"
+        className="w-10 h-10 object-contain shrink-0"
+      />
       <div className="min-w-0">
         <h1 className="text-base font-black text-neutral-900 tracking-tight truncate">Espacio Publico</h1>
         <p className="text-[11px] text-neutral-400 font-medium truncate">Alcaldia Local de Santa Fe</p>
