@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { format, isBefore, startOfDay } from 'date-fns';
+import { format, isBefore, startOfDay, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { programacionService, type ProgramacionItem } from '../../services/programacion.service';
 import { mensajeDeError } from '../../utils/errorMessage';
+import { mismoDia } from '../../lib/calendar.lib';
+import { MonthCalendar } from '../../components/MonthCalendar';
 import { Loading } from '../../components/Loading';
 
 const ETIQUETA_ESTADO: Record<string, string> = {
@@ -17,6 +19,8 @@ export const CronogramaPage = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
+  const [mes, setMes] = useState(() => startOfMonth(new Date()));
+  const [diaSeleccionado, setDiaSeleccionado] = useState<Date | null>(() => new Date());
 
   useEffect(() => {
     let vigente = true;
@@ -41,34 +45,28 @@ export const CronogramaPage = () => {
     };
   }, [intento]);
 
-  const { pendientes, vencidas, cerradas } = useMemo(() => {
+  // Las vencidas se calculan sobre TODO lo cargado, no solo el mes visible en
+  // el calendario: son la alerta mas importante de la pantalla y no pueden
+  // desaparecer solo porque el gestor esta mirando otro mes.
+  const vencidas = useMemo(() => {
     const hoy = startOfDay(new Date());
-    const pendientes: ProgramacionItem[] = [];
-    const vencidas: ProgramacionItem[] = [];
-    const cerradas: ProgramacionItem[] = [];
-    for (const item of items) {
-      if (item.estado !== 'PENDIENTE') {
-        cerradas.push(item);
-      } else if (isBefore(new Date(item.fecha), hoy)) {
-        vencidas.push(item);
-      } else {
-        pendientes.push(item);
-      }
-    }
-    return { pendientes, vencidas, cerradas };
+    return items.filter((item) => item.estado === 'PENDIENTE' && isBefore(new Date(item.fecha), hoy));
   }, [items]);
+
+  const itemsDelDiaSeleccionado = useMemo(
+    () => (diaSeleccionado ? items.filter((item) => mismoDia(new Date(item.fecha), diaSeleccionado)) : []),
+    [items, diaSeleccionado],
+  );
 
   if (cargando) return <Loading />;
 
-  const Fila = ({ item, atrasada }: { item: ProgramacionItem; atrasada?: boolean }) => (
-    <div
-      className={`p-4 rounded-2xl border ${atrasada ? 'border-red-200 bg-red-50' : 'border-neutral-100'}`}
-    >
+  const Fila = ({ item }: { item: ProgramacionItem }) => (
+    <div className="p-4 rounded-2xl border border-neutral-100">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-neutral-800">{item.descripcion}</p>
           <p className="text-sm text-neutral-500">
-            {format(new Date(item.fecha), "dd 'de' MMMM yyyy, HH:mm", { locale: es })}
+            {format(new Date(item.fecha), 'HH:mm', { locale: es })}
             {item.barrio ? ` - ${item.barrio}` : ''}
           </p>
         </div>
@@ -102,63 +100,63 @@ export const CronogramaPage = () => {
               Reintentar
             </button>
           </div>
-        ) : items.length === 0 ? (
-          <div className="card empty-state">
-            <p className="empty-state-title">No tenes actividades programadas</p>
-            <p className="empty-state-description">
-              Cuando el area cargue la programacion, tus actividades aparecen aca.
-            </p>
-            <Link to="/gestor/dashboard" className="btn-secondary mt-4 inline-flex">
-              Ir a mis actividades
-            </Link>
-          </div>
         ) : (
           <>
-            {/* Las vencidas van primero: son las que ya se pasaron de fecha y
-                todavia nadie registro. Enterrarlas al final es como no tenerlas. */}
             {vencidas.length > 0 && (
-              <section className="card">
-                <div className="card-header">
+              <section className="card border border-red-200 bg-red-50">
+                <div className="card-header border-red-100">
                   <h2 className="card-title text-red-700">Vencidas sin registrar</h2>
                   <p className="card-subtitle">{vencidas.length} actividades pasaron de fecha</p>
                 </div>
                 <div className="space-y-3">
                   {vencidas.map((item) => (
-                    <Fila key={item.id} item={item} atrasada />
+                    <Fila key={item.id} item={item} />
                   ))}
                 </div>
               </section>
             )}
 
             <section className="card">
+              <MonthCalendar
+                mes={mes}
+                onMesChange={setMes}
+                items={items}
+                diaSeleccionado={diaSeleccionado}
+                onSeleccionarDia={setDiaSeleccionado}
+              />
+            </section>
+
+            <section className="card">
               <div className="card-header">
-                <h2 className="card-title">Proximas</h2>
-                <p className="card-subtitle">{pendientes.length} actividades por hacer</p>
+                <h2 className="card-title">
+                  {diaSeleccionado
+                    ? format(diaSeleccionado, "EEEE d 'de' MMMM", { locale: es })
+                    : 'Selecciona un dia'}
+                </h2>
+                <p className="card-subtitle">{itemsDelDiaSeleccionado.length} actividades programadas ese dia</p>
               </div>
-              {pendientes.length === 0 ? (
-                <p className="text-neutral-500">No tenes actividades proximas.</p>
+              {itemsDelDiaSeleccionado.length === 0 ? (
+                items.length === 0 ? (
+                  <div className="empty-state">
+                    <p className="empty-state-title">No tenes actividades programadas</p>
+                    <p className="empty-state-description">
+                      Cuando el area cargue la programacion, tus actividades aparecen aca.
+                    </p>
+                    <Link to="/gestor/dashboard" className="btn-secondary mt-4 inline-flex">
+                      Ir a mis actividades
+                    </Link>
+                  </div>
+                ) : (
+                  <p className="text-neutral-500">Ningun operativo programado para este dia.</p>
+                )
               ) : (
                 <div className="space-y-3">
-                  {pendientes.map((item) => (
+                  {itemsDelDiaSeleccionado.map((item) => (
                     <Fila key={item.id} item={item} />
                   ))}
                 </div>
               )}
             </section>
-
-            {cerradas.length > 0 && (
-              <section className="card">
-                <div className="card-header">
-                  <h2 className="card-title">Cerradas</h2>
-                  <p className="card-subtitle">{cerradas.length} actividades</p>
-                </div>
-                <div className="space-y-3">
-                  {cerradas.map((item) => (
-                    <Fila key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
-            )}
           </>
         )}
       </main>
