@@ -30,6 +30,7 @@ export const ROUTE_ACCESS: Record<string, Role[]> = {
   '/gestor/editar-actividad/:id': ['GESTOR_ESPACIO_PUBLICO'],
   '/gestor/actividad/:id': ['GESTOR_ESPACIO_PUBLICO'],
   '/gestor/cronograma': ['GESTOR_ESPACIO_PUBLICO'],
+  '/gestor/perfil': ['GESTOR_ESPACIO_PUBLICO'],
   '/validador/dashboard': ['VALIDADOR_ESPACIO_PUBLICO', 'ADMIN'],
   '/validador/actividad/:id': ['VALIDADOR_ESPACIO_PUBLICO', 'ADMIN'],
   '/validador/programacion': ['VALIDADOR_ESPACIO_PUBLICO', 'ADMIN'],

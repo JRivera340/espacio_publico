@@ -5,7 +5,7 @@ import type { Role } from '../../types';
 describe('getNavItems', () => {
   it('el gestor de espacio publico solo ve su propio panel', () => {
     const items = getNavItems('GESTOR_ESPACIO_PUBLICO');
-    expect(items.map((i) => i.to)).toEqual(['/gestor/dashboard', '/gestor/cronograma']);
+    expect(items.map((i) => i.to)).toEqual(['/gestor/dashboard', '/gestor/cronograma', '/gestor/perfil']);
   });
 
   it('el validador de espacio publico solo ve su propio panel', () => {

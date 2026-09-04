@@ -15,6 +15,7 @@ const GESTOR_ITEM: NavItem = { key: 'gestor', label: 'Mis actividades', icon: 'h
 const VALIDADOR_ITEM: NavItem = { key: 'validador', label: 'Validacion', icon: 'route', to: RUTA_POR_ROL.VALIDADOR_ESPACIO_PUBLICO };
 const ADMIN_ITEM: NavItem = { key: 'admin', label: 'Administracion', icon: 'user', to: RUTA_POR_ROL.ADMIN };
 const CRONOGRAMA_ITEM: NavItem = { key: 'cronograma', label: 'Mi cronograma', icon: 'route', to: '/gestor/cronograma' };
+const PERFIL_ITEM: NavItem = { key: 'perfil', label: 'Mi perfil', icon: 'user', to: '/gestor/perfil' };
 const PROGRAMACION_ITEM: NavItem = { key: 'programacion', label: 'Programacion', icon: 'home', to: '/validador/programacion' };
 
 // Nav recortada a las pantallas de este modulo (espacio publico). Cada rol ve
@@ -23,7 +24,7 @@ const PROGRAMACION_ITEM: NavItem = { key: 'programacion', label: 'Programacion',
 export function getNavItems(role: Role): NavItem[] {
   switch (role) {
     case 'GESTOR_ESPACIO_PUBLICO':
-      return [GESTOR_ITEM, CRONOGRAMA_ITEM];
+      return [GESTOR_ITEM, CRONOGRAMA_ITEM, PERFIL_ITEM];
     case 'VALIDADOR_ESPACIO_PUBLICO':
       return [VALIDADOR_ITEM, PROGRAMACION_ITEM];
     case 'ADMIN':

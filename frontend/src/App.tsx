@@ -12,6 +12,7 @@ import { CreateActivity } from './pages/gestor/CreateActivity';
 import { EditActivity } from './pages/gestor/EditActivity';
 import { ActivityDetail } from './components/ActivityDetail';
 import { CronogramaPage } from './pages/gestor/CronogramaPage';
+import { PerfilGestorPage } from './pages/gestor/PerfilGestorPage';
 import { ValidadorDashboard } from './pages/validador/ValidadorDashboard';
 import { ValidarActividadPage } from './pages/validador/ValidarActividadPage';
 import { ProgramacionPage } from './pages/validador/ProgramacionPage';
@@ -143,6 +144,10 @@ function App() {
         <Route
           path="/gestor/cronograma"
           element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/cronograma']}><CronogramaPage /></RutaProtegida>}
+        />
+        <Route
+          path="/gestor/perfil"
+          element={<RutaProtegida roles={ROUTE_ACCESS['/gestor/perfil']}><PerfilGestorPage /></RutaProtegida>}
         />
         <Route
           path="/validador/dashboard"
