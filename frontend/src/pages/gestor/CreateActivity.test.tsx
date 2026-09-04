@@ -272,6 +272,7 @@ describe('CreateActivity', () => {
     await completarFormulario();
 
     fireEvent.click(screen.getByLabelText(/El operativo se realizo en grupo/));
+    fireEvent.click(await screen.findByRole('button', { name: /Seleccionar gestores acompanantes/ }));
     fireEvent.click(await screen.findByLabelText('Ana Perez'));
     fireEvent.click(screen.getByLabelText('Luis Mora'));
 
@@ -288,6 +289,7 @@ describe('CreateActivity', () => {
     await screen.findByLabelText(/Fecha y hora/);
 
     fireEvent.click(screen.getByLabelText(/El operativo se realizo en grupo/));
+    fireEvent.click(await screen.findByRole('button', { name: /Seleccionar gestores acompanantes/ }));
 
     await screen.findByLabelText('Ana Perez');
     expect(screen.queryByLabelText('Rosa Diaz')).toBeNull();
@@ -327,12 +329,14 @@ describe('CreateActivity', () => {
 
     const casillaGrupo = screen.getByLabelText(/en grupo/i);
     fireEvent.click(casillaGrupo);
+    fireEvent.click(await screen.findByRole('button', { name: /Seleccionar gestores acompanantes/ }));
     const gestor = await screen.findByLabelText(/Ana Perez/i);
     fireEvent.click(gestor);
     expect((gestor as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(casillaGrupo);
     fireEvent.click(casillaGrupo);
+    fireEvent.click(await screen.findByRole('button', { name: /Seleccionar gestores acompanantes/ }));
 
     const deNuevo = await screen.findByLabelText(/Ana Perez/i);
     expect((deNuevo as HTMLInputElement).checked).toBe(false);

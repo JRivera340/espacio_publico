@@ -22,6 +22,7 @@ import { BoundaryLayer } from '../../components/BoundaryLayer';
 import { BarriosLayer } from '../../components/BarriosLayer';
 import { MapLayerControl, type LayerVisibility } from '../../components/MapLayerControl';
 import { DynamicSurveyRenderer } from '../../components/DynamicSurveyRenderer';
+import { MultiSelectCombobox } from '../../components/MultiSelectCombobox';
 import { construirDtoActividad, preguntasDinamicas } from './lib/activityForm';
 import { useAuthStore } from '../../store/authStore';
 import type { Catalogs } from '../../types';
@@ -309,138 +310,22 @@ export const CreateActivity: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-          <section className="card space-y-5">
+          <section className="card space-y-4">
             <div className="card-header">
-              <h2 className="card-title">Datos del operativo</h2>
+              <h2 className="card-title">1. Fecha y hora</h2>
               <p className="card-subtitle">Todos los campos marcados con * son obligatorios</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="input-label font-semibold" htmlFor="fechaHora">
-                  Fecha y hora <span className="text-red-500">*</span>
-                </label>
-                <input id="fechaHora" type="datetime-local" className="input-field" {...register('fechaHora')} />
-              </div>
-
-              <div>
-                <label className="input-label font-semibold" htmlFor="entidadResponsable">
-                  Entidad responsable <span className="text-red-500">*</span>
-                </label>
-                <select id="entidadResponsable" className="select-field" {...register('entidadResponsable')}>
-                  <option value="">Seleccionar entidad</option>
-                  {(catalogs?.entidades ?? []).map((entidad) => (
-                    <option key={entidad} value={entidad}>
-                      {entidad}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             <div>
-              <label className="input-label font-semibold" htmlFor="descripcion">
-                Descripcion de lo realizado <span className="text-red-500">*</span>
+              <label className="input-label font-semibold" htmlFor="fechaHora">
+                Fecha y hora del operativo <span className="text-red-500">*</span>
               </label>
-              {/* El backend rechaza mas de 10000 con un 400. Cortar aca evita
-                  que el gestor descubra el limite despues de subir fotos y acta. */}
-              <textarea
-                id="descripcion"
-                rows={4}
-                maxLength={MAX_DESCRIPCION}
-                className="input-field"
-                placeholder="Que se hizo, con quien y con que resultado"
-                {...register('descripcion')}
-              />
+              <input id="fechaHora" type="datetime-local" className="input-field" {...register('fechaHora')} />
             </div>
-
-            <fieldset className="space-y-2">
-              <legend className="input-label font-semibold">Entidades acompanantes</legend>
-              <div className="flex flex-wrap gap-2">
-                {(catalogs?.entidades ?? []).map((entidad) => {
-                  const marcada = entidadesAcompanantes.includes(entidad);
-                  return (
-                    <label
-                      key={entidad}
-                      htmlFor={`acompanante-${entidad}`}
-                      className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg border cursor-pointer ${
-                        marcada ? 'bg-primary/10 border-primary text-primary' : 'bg-white border-neutral-200 text-neutral-600'
-                      }`}
-                    >
-                      <input
-                        id={`acompanante-${entidad}`}
-                        type="checkbox"
-                        checked={marcada}
-                        onChange={() =>
-                          setEntidadesAcompanantes((previas) =>
-                            marcada ? previas.filter((e) => e !== entidad) : [...previas, entidad],
-                          )
-                        }
-                        className="w-3.5 h-3.5"
-                      />
-                      {entidad}
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            <div className="flex items-center gap-3">
-              <input id="enGrupo" type="checkbox" className="checkbox-field" {...register('enGrupo')} />
-              <label className="input-label mb-0" htmlFor="enGrupo">
-                El operativo se realizo en grupo
-              </label>
-            </div>
-
-            {enGrupo && (
-              <fieldset className="space-y-2">
-                <legend className="input-label font-semibold">Gestores acompanantes</legend>
-                {errorGestores && (
-                  <p className="text-xs text-amber-700" role="alert">
-                    {errorGestores}
-                  </p>
-                )}
-                {!errorGestores && posiblesAcompanantes.length === 0 && (
-                  <p className="text-xs text-neutral-500">
-                    No hay otros gestores del area para seleccionar.
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {posiblesAcompanantes.map((gestor) => {
-                    const marcado = gestoresSeleccionados.includes(gestor.id);
-                    return (
-                      <label
-                        key={gestor.id}
-                        htmlFor={`gestor-${gestor.id}`}
-                        className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg border cursor-pointer ${
-                          marcado
-                            ? 'bg-primary/10 border-primary text-primary'
-                            : 'bg-white border-neutral-200 text-neutral-600'
-                        }`}
-                      >
-                        <input
-                          id={`gestor-${gestor.id}`}
-                          type="checkbox"
-                          checked={marcado}
-                          onChange={() =>
-                            setGestoresSeleccionados((previos) =>
-                              marcado ? previos.filter((id) => id !== gestor.id) : [...previos, gestor.id],
-                            )
-                          }
-                          className="w-3.5 h-3.5"
-                        />
-                        {gestor.nombre}
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            )}
           </section>
 
           <section className="card space-y-4">
             <div className="card-header">
-              <h2 className="card-title">Ubicacion</h2>
+              <h2 className="card-title">2. Ubicacion</h2>
               <p className="card-subtitle">Toca el mapa o usa tu ubicacion actual. El barrio se detecta solo.</p>
             </div>
 
@@ -459,9 +344,6 @@ export const CreateActivity: React.FC = () => {
               </p>
             )}
 
-            {/* Alto reducido en movil: la pantalla se usa en terreno desde el
-                telefono y un mapa de 320px deja el resto del formulario fuera
-                de vista. */}
             <div className="h-64 md:h-80 rounded-2xl overflow-hidden border border-neutral-200 relative">
               <MapContainer center={centroMapa} zoom={16} style={{ height: '100%', width: '100%', zIndex: 1 }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -493,8 +375,6 @@ export const CreateActivity: React.FC = () => {
                 <input id="longitud" className="input-field" value={lng !== null ? lng.toFixed(6) : ''} readOnly disabled />
               </div>
               <div>
-                {/* Solo lectura a proposito: el barrio se detecta por
-                    coordenadas y no se elige a mano. */}
                 <label className="input-label font-semibold" htmlFor="barrio">
                   Barrio <span className="text-red-500">*</span>
                 </label>
@@ -510,20 +390,101 @@ export const CreateActivity: React.FC = () => {
             </div>
           </section>
 
-          <section className="card space-y-6">
+          <section className="card space-y-4">
             <div className="card-header">
-              <h2 className="card-title">Evidencia</h2>
+              <h2 className="card-title">3. Descripcion</h2>
+            </div>
+            <div>
+              <label className="input-label font-semibold" htmlFor="descripcion">
+                Descripcion de lo realizado <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="descripcion"
+                rows={4}
+                maxLength={MAX_DESCRIPCION}
+                className="input-field"
+                placeholder="Que se hizo, con quien y con que resultado"
+                {...register('descripcion')}
+              />
+            </div>
+          </section>
+
+          <section className="card space-y-4">
+            <div className="card-header">
+              <h2 className="card-title">4. Evidencia fotografica</h2>
+              <p className="card-subtitle">Maximo 5 fotos en total, maximo 10MB cada una</p>
+            </div>
+            <PhotosUpload onUploadSuccess={setFotos} existingUrls={fotos} disabled={enviando} />
+          </section>
+
+          <section className="card space-y-4">
+            <div className="card-header">
+              <h2 className="card-title">5. Acta del operativo</h2>
               <p className="card-subtitle">El acta del operativo es obligatoria</p>
             </div>
-
-            <PhotosUpload onUploadSuccess={setFotos} existingUrls={fotos} disabled={enviando} />
             <ActaUpload onUploadSuccess={setActaUrl} existingUrl={actaUrl || null} disabled={enviando} />
+          </section>
+
+          <section className="card space-y-5">
+            <div className="card-header">
+              <h2 className="card-title">6. Entidades</h2>
+            </div>
+            <div>
+              <label className="input-label font-semibold" htmlFor="entidadResponsable">
+                Entidad responsable <span className="text-red-500">*</span>
+              </label>
+              <select id="entidadResponsable" className="select-field" {...register('entidadResponsable')}>
+                <option value="">Seleccionar entidad</option>
+                {(catalogs?.entidades ?? []).map((entidad) => (
+                  <option key={entidad} value={entidad}>
+                    {entidad}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <MultiSelectCombobox
+              legend="Entidades acompanantes"
+              placeholder="Seleccionar entidades acompanantes..."
+              options={(catalogs?.entidades ?? []).map((e) => ({ value: e, label: e }))}
+              selected={entidadesAcompanantes}
+              onChange={setEntidadesAcompanantes}
+            />
+          </section>
+
+          <section className="card space-y-4">
+            <div className="card-header">
+              <h2 className="card-title">7. Operativo en grupo</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <input id="enGrupo" type="checkbox" className="checkbox-field" {...register('enGrupo')} />
+              <label className="input-label mb-0" htmlFor="enGrupo">
+                El operativo se realizo en grupo
+              </label>
+            </div>
+
+            {enGrupo && (
+              <div className="space-y-2">
+                {errorGestores && (
+                  <p className="text-xs text-amber-700" role="alert">
+                    {errorGestores}
+                  </p>
+                )}
+                <MultiSelectCombobox
+                  legend="Gestores acompanantes"
+                  placeholder="Seleccionar gestores acompanantes..."
+                  options={posiblesAcompanantes.map((g) => ({ value: g.id, label: g.nombre }))}
+                  selected={gestoresSeleccionados}
+                  onChange={setGestoresSeleccionados}
+                  emptyMessage="No hay otros gestores del area para seleccionar."
+                />
+              </div>
+            )}
           </section>
 
           {schema && preguntasVisibles.length > 0 && (
             <section className="card space-y-5">
               <div className="card-header">
-                <h2 className="card-title">{schema.title || 'Cifras del operativo'}</h2>
+                <h2 className="card-title">8. {schema.title || 'Cifras del operativo'}</h2>
                 {schema.description && <p className="card-subtitle">{schema.description}</p>}
               </div>
 
