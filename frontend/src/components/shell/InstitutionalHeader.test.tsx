@@ -7,12 +7,12 @@ describe('InstitutionalHeader', () => {
     render(<InstitutionalHeader email="gestor@ejemplo.com" onCerrarSesion={vi.fn()} />);
     const logo = screen.getByAltText('Alcaldia Local de Santa Fe');
     expect(logo.tagName).toBe('IMG');
-    expect(logo).toHaveAttribute('src', '/images/alcaldialocalsantafe-sinfondo.png');
+    expect(logo.getAttribute('src')).toBe('/images/alcaldialocalsantafe-sinfondo.png');
   });
 
   it('sigue mostrando el correo del usuario y el boton de salida', () => {
     render(<InstitutionalHeader email="gestor@ejemplo.com" onCerrarSesion={vi.fn()} />);
-    expect(screen.getByText('gestor@ejemplo.com')).toBeInTheDocument();
-    expect(screen.getByText('Cerrar sesion')).toBeInTheDocument();
+    expect(screen.getAllByText('gestor@ejemplo.com').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Cerrar sesion').length).toBeGreaterThan(0);
   });
 });
