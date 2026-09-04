@@ -101,4 +101,39 @@ describe('MultiSelectCombobox', () => {
     const fieldset = button.closest('fieldset');
     expect((fieldset as HTMLFieldSetElement).disabled).toBe(true);
   });
+
+  it('un segundo clic en el disparador cierra el panel', () => {
+    render(
+      <MultiSelectCombobox
+        legend="Entidades"
+        placeholder="Seleccionar entidades..."
+        options={OPCIONES}
+        selected={[]}
+        onChange={vi.fn()}
+      />,
+    );
+    const disparador = screen.getByRole('button', { name: /Seleccionar entidades/ });
+    expect(disparador.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(disparador);
+    expect(disparador.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByLabelText('UAESP')).toBeTruthy();
+    fireEvent.click(disparador);
+    expect(disparador.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByLabelText('UAESP')).toBeNull();
+  });
+
+  it('con disabled un clic en el disparador no abre el panel', () => {
+    render(
+      <MultiSelectCombobox
+        legend="Entidades"
+        placeholder="Seleccionar entidades..."
+        options={OPCIONES}
+        selected={[]}
+        onChange={vi.fn()}
+        disabled
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar entidades/ }));
+    expect(screen.queryByLabelText('UAESP')).toBeNull();
+  });
 });

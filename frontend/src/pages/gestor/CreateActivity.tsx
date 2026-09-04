@@ -344,6 +344,8 @@ export const CreateActivity: React.FC = () => {
               </p>
             )}
 
+            {/* Alto reducido en movil: la pantalla se usa en terreno desde el
+                telefono y un mapa alto deja el resto del formulario fuera de vista. */}
             <div className="h-64 md:h-80 rounded-2xl overflow-hidden border border-neutral-200 relative">
               <MapContainer center={centroMapa} zoom={16} style={{ height: '100%', width: '100%', zIndex: 1 }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -375,6 +377,8 @@ export const CreateActivity: React.FC = () => {
                 <input id="longitud" className="input-field" value={lng !== null ? lng.toFixed(6) : ''} readOnly disabled />
               </div>
               <div>
+                {/* Solo lectura a proposito: el barrio se detecta por
+                    coordenadas y no se elige a mano. */}
                 <label className="input-label font-semibold" htmlFor="barrio">
                   Barrio <span className="text-red-500">*</span>
                 </label>
@@ -448,6 +452,7 @@ export const CreateActivity: React.FC = () => {
               options={(catalogs?.entidades ?? []).map((e) => ({ value: e, label: e }))}
               selected={entidadesAcompanantes}
               onChange={setEntidadesAcompanantes}
+              disabled={enviando}
             />
           </section>
 
@@ -475,7 +480,12 @@ export const CreateActivity: React.FC = () => {
                   options={posiblesAcompanantes.map((g) => ({ value: g.id, label: g.nombre }))}
                   selected={gestoresSeleccionados}
                   onChange={setGestoresSeleccionados}
-                  emptyMessage="No hay otros gestores del area para seleccionar."
+                  disabled={enviando}
+                  emptyMessage={
+                    errorGestores
+                      ? 'No se pudo cargar la lista de gestores.'
+                      : 'No hay otros gestores del area para seleccionar.'
+                  }
                 />
               </div>
             )}

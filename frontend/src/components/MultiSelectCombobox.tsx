@@ -70,9 +70,9 @@ export const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
       <div className="relative">
         <button
           type="button"
-          onClick={() => setAbierto((v) => !v)}
+          onClick={() => !disabled && setAbierto((v) => !v)}
           aria-expanded={abierto}
-          aria-controls={listId}
+          aria-controls={abierto ? listId : undefined}
           className="input-field w-full flex items-center justify-between text-left text-neutral-500"
         >
           <span>{placeholder}</span>

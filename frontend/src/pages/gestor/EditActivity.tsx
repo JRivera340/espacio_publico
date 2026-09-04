@@ -402,7 +402,7 @@ export const EditActivity: React.FC = () => {
             </div>
             <div>
               <label className="input-label font-semibold" htmlFor="fechaHora">
-                Fecha y hora <span className="text-red-500">*</span>
+                Fecha y hora del operativo <span className="text-red-500">*</span>
               </label>
               <input id="fechaHora" type="datetime-local" className="input-field" {...register('fechaHora')} />
             </div>
@@ -542,6 +542,7 @@ export const EditActivity: React.FC = () => {
               options={(catalogs?.entidades ?? []).map((e) => ({ value: e, label: e }))}
               selected={entidadesAcompanantes}
               onChange={setEntidadesAcompanantes}
+              disabled={guardando}
             />
           </section>
 
@@ -569,7 +570,12 @@ export const EditActivity: React.FC = () => {
                   options={posiblesAcompanantes.map((g) => ({ value: g.id, label: g.nombre }))}
                   selected={gestoresSeleccionados}
                   onChange={setGestoresSeleccionados}
-                  emptyMessage="No hay otros gestores del area para seleccionar."
+                  disabled={guardando}
+                  emptyMessage={
+                    errorGestores
+                      ? 'No se pudo cargar la lista de gestores.'
+                      : 'No hay otros gestores del area para seleccionar.'
+                  }
                 />
               </div>
             )}
