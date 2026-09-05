@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { resumenDelMes } from './desempenoGestor.lib';
+import { resumenDelMes, resumenPorGestor } from './desempenoGestor.lib';
 import type { ProgramacionItem } from '../services/programacion.service';
 import type { Actividad } from '../types';
+import type { GestorResumen } from '../services/users.service';
 
 const AHORA = new Date(2026, 8, 20, 12); // 20 de septiembre 2026, mediodia
 
@@ -59,5 +60,31 @@ describe('desempenoGestor.lib', () => {
     ];
     const resumen = resumenDelMes([], actividades, new Date(2026, 8, 1), AHORA);
     expect(resumen.actividadesRegistradasMes).toBe(2);
+  });
+
+  it('resumenPorGestor agrupa cada gestor con lo suyo y ordena por cumplimiento descendente', () => {
+    const gestores = [{ id: 'g-1', nombre: 'Ana Perez' }, { id: 'g-2', nombre: 'Luis Mora' }];
+    const programacion: ProgramacionItem[] = [
+      item('2026-09-05T10:00:00.000Z', 'CUMPLIDA'), // sin gestorUserId, no cuenta para ninguno
+    ];
+    (programacion[0] as any).gestorUserId = undefined;
+
+    const conGestor = (fecha: string, estado: ProgramacionItem['estado'], gestorUserId: string): ProgramacionItem => ({
+      ...item(fecha, estado), gestorUserId,
+    });
+
+    const lista: ProgramacionItem[] = [
+      conGestor('2026-09-05T10:00:00.000Z', 'CUMPLIDA', 'g-1'),
+      conGestor('2026-09-06T10:00:00.000Z', 'CUMPLIDA', 'g-1'),
+      conGestor('2026-09-07T10:00:00.000Z', 'PENDIENTE', 'g-2'), // vencida
+    ];
+
+    const resumen = resumenPorGestor(lista, [], new Date(2026, 8, 1), AHORA, gestores);
+
+    expect(resumen).toHaveLength(2);
+    expect(resumen[0].nombre).toBe('Ana Perez');
+    expect(resumen[0].porcentajeCumplimiento).toBe(100);
+    expect(resumen[1].nombre).toBe('Luis Mora');
+    expect(resumen[1].porcentajeCumplimiento).toBe(0);
   });
 });

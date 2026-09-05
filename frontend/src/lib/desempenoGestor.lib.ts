@@ -1,5 +1,6 @@
 import type { ProgramacionItem } from '../services/programacion.service';
 import type { Actividad } from '../types';
+import type { GestorResumen } from '../services/users.service';
 
 export interface ResumenDesempeno {
   programadasMes: number;
@@ -37,4 +38,32 @@ export function resumenDelMes(
   const actividadesRegistradasMes = actividades.filter((a) => delMismoMes(a.dateTime, mesRef)).length;
 
   return { programadasMes: delMes.length, cumplidasMes, pendientesMes, vencidasMes, porcentajeCumplimiento, actividadesRegistradasMes };
+}
+
+export interface ResumenPorGestor extends ResumenDesempeno {
+  gestorId: string;
+  nombre: string;
+}
+
+// Un resumen por cada gestor del area, ordenado del que mejor cumple al que
+// peor. Sirve tanto para "todos los gestores" en el cronograma del equipo
+// como para el informe de desempeno: misma cuenta, un solo lugar que la hace.
+export function resumenPorGestor(
+  programacion: ProgramacionItem[],
+  actividades: Actividad[],
+  mesRef: Date,
+  ahora: Date,
+  gestores: GestorResumen[],
+): ResumenPorGestor[] {
+  return gestores
+    .map((g) => {
+      const resumen = resumenDelMes(
+        programacion.filter((p) => p.gestorUserId === g.id),
+        actividades.filter((a) => a.createdByUserId === g.id),
+        mesRef,
+        ahora,
+      );
+      return { gestorId: g.id, nombre: g.nombre, ...resumen };
+    })
+    .sort((a, b) => b.porcentajeCumplimiento - a.porcentajeCumplimiento);
 }
