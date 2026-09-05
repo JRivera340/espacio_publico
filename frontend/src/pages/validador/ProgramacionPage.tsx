@@ -9,9 +9,12 @@ import {
 } from '../../services/programacion.service';
 import { usersService, type GestorResumen } from '../../services/users.service';
 import { catalogService } from '../../services/catalog.service';
+import { activityService } from '../../services/activity.service';
 import { mensajeDeError } from '../../utils/errorMessage';
 import { Loading } from '../../components/Loading';
 import { Toast } from '../../components/Toast';
+import { EquipoCronogramaPanel } from '../../components/EquipoCronogramaPanel';
+import type { Actividad } from '../../types';
 
 interface FilaNueva {
   fecha: string;
@@ -38,6 +41,8 @@ export const ProgramacionPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [actividades, setActividades] = useState<Actividad[]>([]);
+  const [vista, setVista] = useState<'cargar' | 'cronograma'>('cargar');
 
   useEffect(() => {
     let vigente = true;
@@ -74,6 +79,19 @@ export const ProgramacionPage = () => {
       .getBarrios()
       .then((lista) => vigente && setBarrios(lista ?? []))
       .catch(() => vigente && setBarrios([]));
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  // Solo para los KPIs de la pestana de cronograma del equipo: si falla, esa
+  // pestana muestra ceros en vez de romper la carga de programacion.
+  useEffect(() => {
+    let vigente = true;
+    activityService
+      .listAll({ limit: 5000 })
+      .then((respuesta) => vigente && setActividades(respuesta.data))
+      .catch(() => vigente && setActividades([]));
     return () => {
       vigente = false;
     };
@@ -140,6 +158,27 @@ export const ProgramacionPage = () => {
       </div>
 
       <main className="page-content space-y-6">
+        <div className="nav-tabs mb-2">
+          <button type="button" className={vista === 'cargar' ? 'nav-tab-active' : 'nav-tab'} onClick={() => setVista('cargar')}>
+            Cargar programacion
+          </button>
+          <button type="button" className={vista === 'cronograma' ? 'nav-tab-active' : 'nav-tab'} onClick={() => setVista('cronograma')}>
+            Cronograma del equipo
+          </button>
+        </div>
+
+        {vista === 'cronograma' && (
+          <section className="card">
+            <div className="card-header">
+              <h2 className="card-title">Cronograma del equipo</h2>
+              <p className="card-subtitle">Filtra por gestor para ver su cronograma y su cumplimiento del mes</p>
+            </div>
+            <EquipoCronogramaPanel programacion={items} actividades={actividades} gestores={gestores} />
+          </section>
+        )}
+
+        {vista === 'cargar' && (
+          <>
         <section className="card">
           <div className="card-header">
             <h2 className="card-title">Cargar programacion</h2>
@@ -291,6 +330,8 @@ export const ProgramacionPage = () => {
         <Link to="/validador/dashboard" className="btn-secondary inline-flex">
           Volver a validacion
         </Link>
+          </>
+        )}
       </main>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
