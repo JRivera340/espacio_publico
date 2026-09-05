@@ -6,6 +6,8 @@ import { totalYRitmo, porBarrio, eventosOperativos, type ActOperativo } from '..
 import { detectarReincidencia } from '../../lib/reincidencia.lib';
 import { DescargarInforme } from '../../components/DescargarInforme';
 import { Loading } from '../../components/Loading';
+import { usersService, type GestorResumen } from '../../services/users.service';
+import { EquipoCronogramaPanel } from '../../components/EquipoCronogramaPanel';
 import type { Actividad } from '../../types';
 
 const KPI = ({ etiqueta, valor }: { etiqueta: string; valor: string | number }) => (
@@ -21,6 +23,8 @@ export const AdminDashboard = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
+  const [gestores, setGestores] = useState<GestorResumen[]>([]);
+  const [vista, setVista] = useState<'indicadores' | 'cronograma'>('indicadores');
 
   useEffect(() => {
     let vigente = true;
@@ -57,6 +61,17 @@ export const AdminDashboard = () => {
       vigente = false;
     };
   }, [intento]);
+
+  useEffect(() => {
+    let vigente = true;
+    usersService
+      .listarGestores()
+      .then((lista) => vigente && setGestores(lista))
+      .catch(() => vigente && setGestores([]));
+    return () => {
+      vigente = false;
+    };
+  }, []);
 
   // Las librerias de indicadores esperan esta forma. En este modulo todo es
   // Espacio Publico, asi que el agrupado por subtipo no separa nada y se omite.
@@ -101,6 +116,25 @@ export const AdminDashboard = () => {
       </div>
 
       <main className="page-content space-y-6">
+        <div className="nav-tabs mb-2">
+          <button type="button" className={vista === 'indicadores' ? 'nav-tab-active' : 'nav-tab'} onClick={() => setVista('indicadores')}>
+            Indicadores
+          </button>
+          <button type="button" className={vista === 'cronograma' ? 'nav-tab-active' : 'nav-tab'} onClick={() => setVista('cronograma')}>
+            Cronograma del equipo
+          </button>
+        </div>
+
+        {vista === 'cronograma' && !error && (
+          <section className="card">
+            <div className="card-header">
+              <h2 className="card-title">Cronograma del equipo</h2>
+              <p className="card-subtitle">Filtra por gestor para ver su cronograma y su cumplimiento del mes</p>
+            </div>
+            <EquipoCronogramaPanel programacion={programacion} actividades={actividades} gestores={gestores} />
+          </section>
+        )}
+
         {error ? (
           <div className="card empty-state" role="alert">
             <p className="empty-state-title text-red-700">No se pudo cargar la informacion</p>
@@ -109,12 +143,14 @@ export const AdminDashboard = () => {
               Reintentar
             </button>
           </div>
-        ) : actividades.length === 0 ? (
-          <div className="card empty-state">
-            <p className="empty-state-title">Todavia no hay actividades registradas</p>
-            <p className="empty-state-description">Los indicadores aparecen cuando los gestores empiecen a registrar.</p>
-          </div>
         ) : (
+          vista === 'indicadores' && (
+            actividades.length === 0 ? (
+              <div className="card empty-state">
+                <p className="empty-state-title">Todavia no hay actividades registradas</p>
+                <p className="empty-state-description">Los indicadores aparecen cuando los gestores empiecen a registrar.</p>
+              </div>
+            ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <KPI etiqueta="Total de operativos" valor={ritmo.total} />
@@ -198,9 +234,11 @@ export const AdminDashboard = () => {
               <div className="card-header">
                 <h2 className="card-title">Informe</h2>
               </div>
-              <DescargarInforme />
+              <DescargarInforme mostrarSelectorGestor gestores={gestores} />
             </section>
           </>
+            )
+          )
         )}
       </main>
     </div>

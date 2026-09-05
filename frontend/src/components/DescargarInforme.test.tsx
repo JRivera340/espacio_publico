@@ -42,4 +42,31 @@ describe('DescargarInforme', () => {
 
     expect(await screen.findByRole('alert')).toBeDefined();
   });
+
+  it('con mostrarSelectorGestor pinta los campos de fecha y gestor', () => {
+    render(<DescargarInforme mostrarSelectorGestor gestores={[{ id: 'g-1', nombre: 'Ana Perez' }]} />);
+    expect(screen.getByLabelText('Desde')).toBeTruthy();
+    expect(screen.getByLabelText('Hasta')).toBeTruthy();
+    expect(screen.getByLabelText('Gestor')).toBeTruthy();
+  });
+
+  it('con mostrarSelectorGestor manda los filtros elegidos al pedir el informe', async () => {
+    render(<DescargarInforme mostrarSelectorGestor gestores={[{ id: 'g-1', nombre: 'Ana Perez' }]} />);
+
+    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-09-01' } });
+    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-09-30' } });
+    fireEvent.change(screen.getByLabelText('Gestor'), { target: { value: 'g-1' } });
+    fireEvent.click(screen.getByRole('button', { name: /Descargar informe/i }));
+
+    await waitFor(() =>
+      expect(activityService.descargarInforme).toHaveBeenCalledWith({
+        desde: '2026-09-01', hasta: '2026-09-30', gestor: 'g-1',
+      }),
+    );
+  });
+
+  it('sin mostrarSelectorGestor no pinta ningun campo (comportamiento previo intacto)', () => {
+    render(<DescargarInforme filtros={{ desde: '2026-08-01', hasta: '2026-08-31' }} />);
+    expect(screen.queryByLabelText('Gestor')).toBeNull();
+  });
 });

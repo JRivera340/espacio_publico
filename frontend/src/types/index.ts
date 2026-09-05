@@ -111,6 +111,7 @@ export interface CreateActividadDTO {
 export interface ActividadFilters {
   desde?: string;
   hasta?: string;
+  gestor?: string;
   limit?: number;
   offset?: number;
 }

@@ -31,6 +31,7 @@ function buildQuery(filters?: ActividadFilters): string {
   const params = new URLSearchParams();
   if (filters?.desde) params.append('desde', filters.desde);
   if (filters?.hasta) params.append('hasta', filters.hasta);
+  if (filters?.gestor) params.append('gestor', filters.gestor);
   if (filters?.limit) params.append('limit', filters.limit.toString());
   if (filters?.offset !== undefined) params.append('offset', filters.offset.toString());
   const queryString = params.toString();
