@@ -38,16 +38,23 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
     [programacionFiltrada, diaSeleccionado],
   );
 
-  const resumenIndividual = gestorId
-    ? resumenDelMes(
-        programacionFiltrada,
-        actividades.filter((a) => a.createdByUserId === gestorId),
-        mes,
-        new Date(),
-      )
-    : null;
+  const resumenIndividual = useMemo(
+    () =>
+      gestorId
+        ? resumenDelMes(
+            programacionFiltrada,
+            actividades.filter((a) => a.createdByUserId === gestorId),
+            mes,
+            new Date(),
+          )
+        : null,
+    [gestorId, programacionFiltrada, actividades, mes],
+  );
 
-  const resumenEquipo = gestorId ? [] : resumenPorGestor(programacion, actividades, mes, new Date(), gestores);
+  const resumenEquipo = useMemo(
+    () => (gestorId ? [] : resumenPorGestor(programacion, actividades, mes, new Date(), gestores)),
+    [gestorId, programacion, actividades, mes, gestores],
+  );
 
   return (
     <div className="space-y-6">

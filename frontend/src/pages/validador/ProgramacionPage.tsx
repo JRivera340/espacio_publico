@@ -85,8 +85,10 @@ export const ProgramacionPage = () => {
   }, []);
 
   // Solo para los KPIs de la pestana de cronograma del equipo: si falla, esa
-  // pestana muestra ceros en vez de romper la carga de programacion.
+  // pestana muestra ceros en vez de romper la carga de programacion. Se pide
+  // recien cuando se entra a esa pestana, no en cada carga de la pagina.
   useEffect(() => {
+    if (vista !== 'cronograma') return;
     let vigente = true;
     activityService
       .listAll({ limit: 5000 })
@@ -95,7 +97,7 @@ export const ProgramacionPage = () => {
     return () => {
       vigente = false;
     };
-  }, []);
+  }, [vista]);
 
   const cambiarFila = (indice: number, campo: keyof FilaNueva, valor: string) => {
     setFilas((previas) => previas.map((f, i) => (i === indice ? { ...f, [campo]: valor } : f)));

@@ -1,5 +1,5 @@
 import {
-  startOfMonth, endOfMonth, startOfWeek, addDays, addMonths, subMonths,
+  startOfMonth, startOfWeek, addDays, addMonths, subMonths,
   isSameMonth, isSameDay, isToday, format,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -38,9 +38,4 @@ export function tituloMes(mesRef: Date): string {
 
 export function mismoDia(a: Date, b: Date): boolean {
   return isSameDay(a, b);
-}
-
-// Reexportado para quien necesite el limite superior del mes sin reimplementarlo.
-export function finDeMes(mesRef: Date): Date {
-  return endOfMonth(mesRef);
 }

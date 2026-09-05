@@ -87,4 +87,27 @@ describe('desempenoGestor.lib', () => {
     expect(resumen[1].nombre).toBe('Luis Mora');
     expect(resumen[1].porcentajeCumplimiento).toBe(0);
   });
+
+  it('un gestor sin nada asignado (100% por defecto) no supera en el orden a uno que si cumplio algo', () => {
+    const gestores = [{ id: 'g-1', nombre: 'Ana Perez' }, { id: 'g-2', nombre: 'Luis Mora' }];
+
+    const conGestor = (fecha: string, estado: ProgramacionItem['estado'], gestorUserId: string): ProgramacionItem => ({
+      ...item(fecha, estado), gestorUserId,
+    });
+
+    // Ana no tiene nada programado este mes (base 0, cumplimiento 100 por defecto).
+    // Luis cumplio 9 de 10, un cumplimiento real del 90%.
+    const lista: ProgramacionItem[] = [
+      ...Array.from({ length: 9 }, (_, i) => conGestor(`2026-09-0${i + 1}T10:00:00.000Z`, 'CUMPLIDA', 'g-2')),
+      conGestor('2026-09-10T10:00:00.000Z', 'PENDIENTE', 'g-2'), // vencida
+    ];
+
+    const resumen = resumenPorGestor(lista, [], new Date(2026, 8, 1), AHORA, gestores);
+
+    expect(resumen).toHaveLength(2);
+    expect(resumen[0].nombre).toBe('Luis Mora');
+    expect(resumen[0].porcentajeCumplimiento).toBe(90);
+    expect(resumen[1].nombre).toBe('Ana Perez');
+    expect(resumen[1].porcentajeCumplimiento).toBe(100);
+  });
 });

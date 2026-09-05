@@ -65,5 +65,12 @@ export function resumenPorGestor(
       );
       return { gestorId: g.id, nombre: g.nombre, ...resumen };
     })
-    .sort((a, b) => b.porcentajeCumplimiento - a.porcentajeCumplimiento);
+    .sort((a, b) => {
+      const baseA = a.cumplidasMes + a.vencidasMes;
+      const baseB = b.cumplidasMes + b.vencidasMes;
+      if (baseA === 0 && baseB === 0) return 0;
+      if (baseA === 0) return 1;
+      if (baseB === 0) return -1;
+      return b.porcentajeCumplimiento - a.porcentajeCumplimiento;
+    });
 }
