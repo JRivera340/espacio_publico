@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AdminDashboard } from './AdminDashboard';
 import { activityService } from '../../services/activity.service';
 import { programacionService } from '../../services/programacion.service';
+import { usersService } from '../../services/users.service';
 
 vi.mock('../../services/activity.service', () => ({
   activityService: { listAll: vi.fn(), descargarInforme: vi.fn() },
@@ -11,6 +12,10 @@ vi.mock('../../services/activity.service', () => ({
 
 vi.mock('../../services/programacion.service', () => ({
   programacionService: { listar: vi.fn() },
+}));
+
+vi.mock('../../services/users.service', () => ({
+  usersService: { listarGestores: vi.fn() },
 }));
 
 const ahora = Date.now();
@@ -37,6 +42,7 @@ describe('AdminDashboard', () => {
   beforeEach(() => {
     (activityService.listAll as any).mockReset().mockResolvedValue({ data: ACTIVIDADES, total: 4 });
     (programacionService.listar as any).mockReset().mockResolvedValue([]);
+    (usersService.listarGestores as any).mockReset().mockResolvedValue([]);
   });
 
   it('pide todas las actividades del area', async () => {
