@@ -12,8 +12,11 @@ interface InstitutionalHeaderProps {
 // dos colores que competian en vez de una sola identidad.
 export const InstitutionalHeader: React.FC<InstitutionalHeaderProps> = ({ email, onCerrarSesion }) => (
   <header
-    className="shrink-0 flex items-center justify-between px-4 py-2.5 z-[1700] shadow-lg"
-    style={{ background: 'linear-gradient(135deg, #ff1f3d, #c9142f)' }}
+    className="shrink-0 flex items-center justify-between px-4 py-3 z-[1700] shadow-lg"
+    style={{
+      background:
+        'radial-gradient(circle at 15% 0%, rgba(255,255,255,0.16), transparent 55%), linear-gradient(135deg, #ff1f3d, #c9142f)',
+    }}
   >
     <div className="flex items-center gap-3 min-w-0">
       {/* Logo blanco sobre transparente: sobre este fondo rojo se ve. */}

@@ -69,13 +69,13 @@ export const IngresoPage = () => {
         className="h-10 w-auto object-contain mb-8"
       />
 
-      <div className="w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8">
-        <h1 className="text-2xl font-black text-neutral-900">Espacio Publico</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div className="w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10">
+        <h1 className="text-2xl font-black text-neutral-900 tracking-tight">Espacio Publico</h1>
+        <p className="mt-1.5 text-sm text-neutral-500">
           Ingreso temporal para pruebas. Usa tu mismo usuario de bogotaneidapp.
         </p>
 
-        <form onSubmit={enviar} className="mt-6 space-y-4" noValidate>
+        <form onSubmit={enviar} className="mt-7 space-y-5" noValidate>
           <div>
             <label className="input-label font-semibold" htmlFor="email">
               Correo
