@@ -7,7 +7,7 @@ describe('InstitutionalHeader', () => {
     render(<InstitutionalHeader email="gestor@ejemplo.com" onCerrarSesion={vi.fn()} />);
     const logo = screen.getByAltText('Alcaldia Local de Santa Fe');
     expect(logo.tagName).toBe('IMG');
-    expect(logo.getAttribute('src')).toBe('/images/alcaldialocalsantafe.jpeg');
+    expect(logo.getAttribute('src')).toBe('/images/alcaldialocalsantafe-sinfondo.png');
   });
 
   it('sigue mostrando el correo del usuario y el boton de salida', () => {
