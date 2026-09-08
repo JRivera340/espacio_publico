@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { BarChart3, CalendarClock, CalendarCheck2, ListTodo } from 'lucide-react';
 import { activityService } from '../../services/activity.service';
+import { StatCard } from '../../components/StatCard';
 import { programacionService, type ProgramacionItem } from '../../services/programacion.service';
 import { mensajeDeError } from '../../utils/errorMessage';
 import { totalYRitmo, porBarrio, eventosOperativos, type ActOperativo } from '../../lib/indicadoresOperativos.lib';
@@ -9,13 +11,6 @@ import { Loading } from '../../components/Loading';
 import { usersService, type GestorResumen } from '../../services/users.service';
 import { EquipoCronogramaPanel } from '../../components/EquipoCronogramaPanel';
 import type { Actividad } from '../../types';
-
-const KPI = ({ etiqueta, valor }: { etiqueta: string; valor: string | number }) => (
-  <div className="card">
-    <p className="card-subtitle">{etiqueta}</p>
-    <p className="text-2xl font-bold text-neutral-800">{valor}</p>
-  </div>
-);
 
 export const AdminDashboard = () => {
   const [actividades, setActividades] = useState<Actividad[]>([]);
@@ -153,10 +148,10 @@ export const AdminDashboard = () => {
             ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <KPI etiqueta="Total de operativos" valor={ritmo.total} />
-              <KPI etiqueta="Ultimos 20 dias" valor={ritmo.ultimos20d} />
-              <KPI etiqueta="Esta semana" valor={ritmo.estaSemana} />
-              <KPI etiqueta="Programadas pendientes" valor={programadasPendientes} />
+              <StatCard icon={BarChart3} tone="primary" label="Total de operativos" value={ritmo.total} />
+              <StatCard icon={CalendarClock} tone="amber" label="Ultimos 20 dias" value={ritmo.ultimos20d} />
+              <StatCard icon={CalendarCheck2} tone="success" label="Esta semana" value={ritmo.estaSemana} />
+              <StatCard icon={ListTodo} tone="neutral" label="Programadas pendientes" value={programadasPendientes} />
             </div>
 
             <section className="card">

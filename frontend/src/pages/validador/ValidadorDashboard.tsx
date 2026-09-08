@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ClipboardList, CheckCircle2 } from 'lucide-react';
 import { activityService } from '../../services/activity.service';
 import { mensajeDeError } from '../../utils/errorMessage';
 import { getActivityCode } from '../../utils/activityCode';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Loading } from '../../components/Loading';
 import { DescargarInforme } from '../../components/DescargarInforme';
+import { StatCard } from '../../components/StatCard';
 import type { Actividad } from '../../types';
 
 type Pestana = 'pendientes' | 'validadas';
@@ -59,14 +61,8 @@ export const ValidadorDashboard = () => {
 
       <main className="page-content">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="card">
-            <p className="card-subtitle">Esperando validacion</p>
-            <p className="text-2xl font-bold text-primary">{pendientes.length}</p>
-          </div>
-          <div className="card">
-            <p className="card-subtitle">Validadas por mi</p>
-            <p className="text-2xl font-bold text-success">{validadas.length}</p>
-          </div>
+          <StatCard icon={ClipboardList} tone="primary" label="Esperando validacion" value={pendientes.length} />
+          <StatCard icon={CheckCircle2} tone="success" label="Validadas por mi" value={validadas.length} />
           <div className="card flex flex-col justify-center gap-2">
             <Link to="/validador/programacion" className="btn-success btn-sm w-full justify-center">
               Cargar programacion

@@ -20,7 +20,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ items }) => (
         end
         className={({ isActive }) =>
           `flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-[56px] transition-colors ${
-            isActive ? 'text-[#F97316]' : 'text-neutral-400 hover:text-neutral-600'
+            isActive ? 'text-primary' : 'text-neutral-400 hover:text-neutral-600'
           }`
         }
       >

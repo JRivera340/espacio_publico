@@ -19,7 +19,7 @@ describe('SideNav', () => {
   afterEach(cleanup);
 
   it('resalta el item en su ruta exacta', () => {
-    expect(renderEn('/admin').className).toContain('#F97316');
+    expect(renderEn('/admin').className).toContain('text-primary');
   });
 
   // Sin `end` en el NavLink, cualquier ruta que EXTIENDA la del item lo deja
@@ -28,6 +28,6 @@ describe('SideNav', () => {
   // se agregue heredaria el defecto en silencio - por eso se prueba con una
   // ruta hija en vez de con las rutas actuales.
   it('no resalta el item en una ruta hija', () => {
-    expect(renderEn('/admin/usuarios').className).not.toContain('#F97316');
+    expect(renderEn('/admin/usuarios').className).not.toContain('text-primary');
   });
 });

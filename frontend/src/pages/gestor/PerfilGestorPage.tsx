@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react';
 import { startOfMonth } from 'date-fns';
+import { CalendarRange, CheckCircle2, Clock3, ClipboardList } from 'lucide-react';
 import { programacionService, type ProgramacionItem } from '../../services/programacion.service';
 import { activityService } from '../../services/activity.service';
 import { resumenDelMes } from '../../lib/desempenoGestor.lib';
 import { tituloMes } from '../../lib/calendar.lib';
 import { mensajeDeError } from '../../utils/errorMessage';
 import { Loading } from '../../components/Loading';
+import { StatCard } from '../../components/StatCard';
 import type { Actividad } from '../../types';
-
-const KPI = ({ etiqueta, valor }: { etiqueta: string; valor: string | number }) => (
-  <div className="card">
-    <p className="card-subtitle">{etiqueta}</p>
-    <p className="text-2xl font-bold text-neutral-800">{valor}</p>
-  </div>
-);
 
 // Indicadores de desempeño propios del gestor: lo que le toco cumplir este
 // mes y como le fue. Vive aparte de "Mi cronograma" porque responde una
@@ -69,10 +64,10 @@ export const PerfilGestorPage = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KPI etiqueta="Programadas este mes" valor={resumen.programadasMes} />
-              <KPI etiqueta="Cumplidas" valor={resumen.cumplidasMes} />
-              <KPI etiqueta="Pendientes" valor={resumen.pendientesMes} />
-              <KPI etiqueta="Actividades registradas" valor={resumen.actividadesRegistradasMes} />
+              <StatCard icon={CalendarRange} tone="primary" label="Programadas este mes" value={resumen.programadasMes} />
+              <StatCard icon={CheckCircle2} tone="success" label="Cumplidas" value={resumen.cumplidasMes} />
+              <StatCard icon={Clock3} tone="amber" label="Pendientes" value={resumen.pendientesMes} />
+              <StatCard icon={ClipboardList} tone="neutral" label="Actividades registradas" value={resumen.actividadesRegistradasMes} />
             </div>
 
             <section className="card">

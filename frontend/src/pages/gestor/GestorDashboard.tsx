@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ClipboardCheck, CheckCircle2, XCircle } from 'lucide-react';
 import { activityService } from '../../services/activity.service';
 import { Loading } from '../../components/Loading';
 import { Pagination } from '../../components/Pagination';
+import { StatCard } from '../../components/StatCard';
 import type { Actividad, ActividadStatus } from '../../types';
 import { getActivityCode } from '../../utils/activityCode';
 import { BADGE_POR_ESTADO, ETIQUETA_POR_ESTADO } from '../../components/StatusBadge';
@@ -119,21 +121,12 @@ export const GestorDashboard: React.FC = () => {
 
       <main className="page-content">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="card">
-            <p className="card-subtitle">En validacion</p>
-            <p className="text-2xl font-bold text-primary">{stats.enviada}</p>
-          </div>
-          <div className="card">
-            {/* El backend devuelve el conteo de PUBLICADA bajo la clave
-                `aprobada`: aprobar publica directo, el estado APROBADA no se
-                alcanza. El rotulo sigue al dato, no a la clave. */}
-            <p className="card-subtitle">Publicadas</p>
-            <p className="text-2xl font-bold text-success">{stats.aprobada}</p>
-          </div>
-          <div className="card">
-            <p className="card-subtitle">Rechazadas</p>
-            <p className="text-2xl font-bold text-red-600">{stats.rechazada}</p>
-          </div>
+          <StatCard icon={ClipboardCheck} tone="primary" label="En validacion" value={stats.enviada} />
+          {/* El backend devuelve el conteo de PUBLICADA bajo la clave
+              `aprobada`: aprobar publica directo, el estado APROBADA no se
+              alcanza. El rotulo sigue al dato, no a la clave. */}
+          <StatCard icon={CheckCircle2} tone="success" label="Publicadas" value={stats.aprobada} />
+          <StatCard icon={XCircle} tone="danger" label="Rechazadas" value={stats.rechazada} />
         </div>
 
         <div className="mb-6">
