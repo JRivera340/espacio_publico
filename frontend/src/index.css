@@ -300,10 +300,14 @@
   }
 
   /* === BADGES DE ESTADO === */
+  /* Cada estado lleva un punto de color propio (::before) ademas del fondo:
+     enviada y rechazada usaban el mismo rojo y solo se distinguian por el
+     texto - dos estados identicos a simple vista es un problema real, no
+     solo estetico. */
   .badge {
-    @apply inline-flex items-center gap-1
-           px-2.5 py-1 
-           rounded-full 
+    @apply inline-flex items-center gap-1.5
+           px-2.5 py-1
+           rounded-full
            transition-colors duration-150;
     font-family: 'Inter', sans-serif;
     font-size: 11px;
@@ -311,24 +315,47 @@
     line-height: 1.5;
   }
 
+  .badge::before {
+    content: '';
+    @apply w-1.5 h-1.5 rounded-full shrink-0;
+  }
+
   .badge-borrador {
     @apply badge bg-amber-50 text-amber-700 border border-amber-200;
   }
+  .badge-borrador::before {
+    background: theme('colors.status.borrador');
+  }
 
+  /* Enviada usa el rojo institucional (activo, en curso) en vez de compartir
+     el mismo tono que rechazada (fallido) - son estados semanticamente
+     distintos y no pueden verse igual. */
   .badge-enviada {
-    @apply badge bg-red-50 text-red-700 border border-red-200;
+    @apply badge bg-primary-50 text-primary border border-primary-200;
+  }
+  .badge-enviada::before {
+    background: theme('colors.status.enviada');
   }
 
   .badge-aprobada {
     @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
   }
+  .badge-aprobada::before {
+    background: theme('colors.status.aprobada');
+  }
 
   .badge-publicada {
     @apply badge bg-green-50 text-green-700 border border-green-200;
   }
+  .badge-publicada::before {
+    background: theme('colors.status.publicada');
+  }
 
   .badge-rechazada {
-    @apply badge bg-red-50 text-red-700 border border-red-200;
+    @apply badge bg-red-100 text-red-800 border border-red-300;
+  }
+  .badge-rechazada::before {
+    background: theme('colors.status.rechazada');
   }
 
   /* === TABLAS === */
@@ -410,7 +437,7 @@
 
   /* === MÉTRICAS / STATS === */
   .stat-card {
-    @apply card flex flex-col;
+    @apply card flex flex-col border border-neutral-100;
   }
 
   .stat-value {
@@ -429,11 +456,13 @@
     margin-top: 4px;
   }
 
+  /* Circulo de tono suave (bg-{color}-50) con el icono en el color fuerte
+     encima, no relleno solido con icono blanco - un insight se lee, no se
+     aprieta como un boton. */
   .stat-icon {
-    @apply w-10 h-10 md:w-12 md:h-12 
-           rounded-xl 
-           flex items-center justify-center
-           text-white;
+    @apply w-10 h-10 md:w-11 md:h-11
+           rounded-full
+           flex items-center justify-center;
   }
 
   /* === NAVEGACIÓN / TABS === */
