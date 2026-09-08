@@ -440,7 +440,7 @@ export const EditActivity: React.FC = () => {
                     setLayerVisibility((previo) => ({ ...previo, [capa]: visible }))
                   }
                 />
-                <BoundaryLayer color="#DC2626" fillOpacity={0.08} />
+                <BoundaryLayer color="#c9142f" fillOpacity={0.08} />
                 <BarriosLayer visible={layerVisibility.barrios} fillOpacity={0.05} weight={1} />
                 <CentrarVista center={centroMapa} />
                 {lat !== null && lng !== null && <Marker position={[lat, lng]} icon={iconoMarcador} />}

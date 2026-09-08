@@ -31,8 +31,8 @@ interface BoundaryLayerProps {
 // Dibuja los limites de la localidad a partir de un KML/KMZ de /public.
 export const BoundaryLayer: React.FC<BoundaryLayerProps> = ({
   kmlPath = '/boundaries/KMZ_Sectores_Catastrales_SF_2026.kmz',
-  color = '#DC2626',
-  fillColor = '#DC2626',
+  color = '#c9142f',
+  fillColor = '#c9142f',
   fillOpacity = 0.1,
   weight = 2,
   filterByName,
