@@ -492,8 +492,12 @@
   }
 
   /* === CONTENEDOR PRINCIPAL === */
+  /* Fondo con tinte calido institucional en vez de gris plano: el area
+     autenticada (paneles de gestor/validador/admin) se sentia sin marca -
+     todo blanco con color solo en botones sueltos. */
   .page-container {
-    @apply min-h-screen bg-neutral-50;
+    @apply min-h-screen;
+    background: linear-gradient(180deg, #fef2f2 0%, #f7fafc 320px);
   }
 
   .page-content {

@@ -11,14 +11,17 @@ interface InstitutionalHeaderProps {
 export const InstitutionalHeader: React.FC<InstitutionalHeaderProps> = ({ email, onCerrarSesion }) => (
   <header className="shrink-0 flex items-center justify-between bg-white/95 backdrop-blur-md border-b border-neutral-100 shadow-xl px-4 py-2.5 z-[1700]">
     <div className="flex items-center gap-3 min-w-0">
+      {/* Logo horizontal, fondo rojo solido: la variante "sinfondo" es texto
+          blanco sobre transparente y queda invisible sobre este header
+          blanco. Alto fijo, ancho libre - forzarlo a un cuadro lo aplastaba. */}
       <img
-        src="/images/alcaldialocalsantafe-sinfondo.png"
+        src="/images/alcaldialocalsantafe.jpeg"
         alt="Alcaldia Local de Santa Fe"
-        className="w-10 h-10 object-contain shrink-0"
+        className="h-9 w-auto object-contain shrink-0 rounded-lg"
       />
-      <div className="min-w-0">
+      <div className="min-w-0 border-l border-neutral-200 pl-3">
         <h1 className="text-base font-black text-neutral-900 tracking-tight truncate">Espacio Publico</h1>
-        <p className="text-[11px] text-neutral-400 font-medium truncate">Alcaldia Local de Santa Fe</p>
+        <p className="text-[11px] text-neutral-400 font-medium truncate">Articulo 1801</p>
       </div>
     </div>
 

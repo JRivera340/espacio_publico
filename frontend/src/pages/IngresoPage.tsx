@@ -57,8 +57,19 @@ export const IngresoPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-6">
-      <div className="w-full max-w-sm bg-white/95 backdrop-blur-md rounded-[24px] shadow-xl p-8">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-6"
+      style={{ background: 'radial-gradient(circle at 20% 20%, #c9142f, #5e0113 65%)' }}
+    >
+      {/* Logo blanco sobre transparente: por eso va sobre el fondo rojo, no
+          dentro de la tarjeta blanca donde quedaria invisible. */}
+      <img
+        src="/images/alcaldialocalsantafe-sinfondo.png"
+        alt="Alcaldia Local de Santa Fe"
+        className="h-10 w-auto object-contain mb-8"
+      />
+
+      <div className="w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-8">
         <h1 className="text-2xl font-black text-neutral-900">Espacio Publico</h1>
         <p className="mt-1 text-sm text-neutral-500">
           Ingreso temporal para pruebas. Usa tu mismo usuario de bogotaneidapp.
