@@ -24,6 +24,7 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
   const [mes, setMes] = useState(() => startOfMonth(new Date()));
   const [gestorId, setGestorId] = useState('');
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | null>(() => new Date());
+  const [mostrarSinActividad, setMostrarSinActividad] = useState(false);
 
   const programacionFiltrada = useMemo(
     () => (gestorId ? programacion.filter((p) => p.gestorUserId === gestorId) : programacion),
@@ -51,10 +52,18 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
     [gestorId, programacionFiltrada, actividades, mes],
   );
 
-  const resumenEquipo = useMemo(
-    () => (gestorId ? [] : resumenPorGestor(programacion, actividades, mes, new Date(), gestores)),
-    [gestorId, programacion, actividades, mes, gestores],
-  );
+  // Separado en dos grupos: la tabla de "todos" con cada gestor del area
+  // (pueden ser decenas) se vuelve una pared de ceros ilegible si se listan
+  // todos por igual. Los que no tienen nada programado este mes quedan
+  // plegados aparte - la tabla principal muestra solo a quien le toco algo.
+  const { equipoConActividad, equipoSinActividad } = useMemo(() => {
+    if (gestorId) return { equipoConActividad: [], equipoSinActividad: [] };
+    const todos = resumenPorGestor(programacion, actividades, mes, new Date(), gestores);
+    return {
+      equipoConActividad: todos.filter((f) => f.programadasMes > 0),
+      equipoSinActividad: todos.filter((f) => f.programadasMes === 0),
+    };
+  }, [gestorId, programacion, actividades, mes, gestores]);
 
   return (
     <div className="space-y-6">
@@ -77,83 +86,119 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
         </select>
       </div>
 
-      <MonthCalendar
-        mes={mes}
-        onMesChange={setMes}
-        items={programacionFiltrada}
-        diaSeleccionado={diaSeleccionado}
-        onSeleccionarDia={setDiaSeleccionado}
-      />
+      {/* Calendario y detalle del dia lado a lado en escritorio: elegir un
+          dia y ver que le toca es una sola accion, no una que obligue a
+          bajar la pagina para encontrar la respuesta. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        <MonthCalendar
+          mes={mes}
+          onMesChange={setMes}
+          items={programacionFiltrada}
+          diaSeleccionado={diaSeleccionado}
+          onSeleccionarDia={setDiaSeleccionado}
+        />
 
-      <div>
-        <h3 className="font-bold text-neutral-800 mb-2">
-          {diaSeleccionado ? format(diaSeleccionado, "EEEE d 'de' MMMM", { locale: es }) : 'Selecciona un dia'}
-        </h3>
-        {itemsDelDia.length === 0 ? (
-          <p className="text-neutral-500">Nada programado este dia{gestorId ? ' para este gestor' : ''}.</p>
-        ) : (
-          <div className="space-y-2">
-            {itemsDelDia.map((item) => (
-              <div key={item.id} className="p-3 rounded-xl border border-neutral-100 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-neutral-800">{item.descripcion}</p>
-                  <p className="text-xs text-neutral-500">
-                    {nombreDeGestor(item.gestorUserId)}
-                    {item.barrio ? ` - ${item.barrio}` : ''}
-                  </p>
-                </div>
-                <span className="text-xs font-semibold text-neutral-500 shrink-0">{item.estado}</span>
+        <div className="lg:sticky lg:top-4 space-y-4">
+          <div>
+            <h3 className="font-bold text-neutral-800 mb-2">
+              {diaSeleccionado ? format(diaSeleccionado, "EEEE d 'de' MMMM", { locale: es }) : 'Selecciona un dia'}
+            </h3>
+            {itemsDelDia.length === 0 ? (
+              <p className="text-neutral-500 text-sm">Nada programado este dia{gestorId ? ' para este gestor' : ''}.</p>
+            ) : (
+              <div className="space-y-2">
+                {itemsDelDia.map((item) => (
+                  <div key={item.id} className="p-3 rounded-xl border border-neutral-100">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-semibold text-neutral-800 text-sm">{item.descripcion}</p>
+                      <span className="text-xs font-semibold text-neutral-500 shrink-0">{item.estado}</span>
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      {nombreDeGestor(item.gestorUserId)}
+                      {item.barrio ? ` - ${item.barrio}` : ''}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+
+          {resumenIndividual && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="card p-3">
+                <p className="card-subtitle">Programadas</p>
+                <p className="text-lg font-bold text-neutral-800">{resumenIndividual.programadasMes}</p>
+              </div>
+              <div className="card p-3">
+                <p className="card-subtitle">Cumplidas</p>
+                <p className="text-lg font-bold text-neutral-800">{resumenIndividual.cumplidasMes}</p>
+              </div>
+              <div className="card p-3">
+                <p className="card-subtitle">Vencidas</p>
+                <p className="text-lg font-bold text-red-600">{resumenIndividual.vencidasMes}</p>
+              </div>
+              <div className="card p-3">
+                <p className="card-subtitle">Cumplimiento</p>
+                <p className="text-lg font-bold text-neutral-800">{resumenIndividual.porcentajeCumplimiento}%</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {resumenIndividual && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="card">
-            <p className="card-subtitle">Programadas</p>
-            <p className="text-xl font-bold text-neutral-800">{resumenIndividual.programadasMes}</p>
-          </div>
-          <div className="card">
-            <p className="card-subtitle">Cumplidas</p>
-            <p className="text-xl font-bold text-neutral-800">{resumenIndividual.cumplidasMes}</p>
-          </div>
-          <div className="card">
-            <p className="card-subtitle">Vencidas</p>
-            <p className="text-xl font-bold text-red-600">{resumenIndividual.vencidasMes}</p>
-          </div>
-          <div className="card">
-            <p className="card-subtitle">Cumplimiento</p>
-            <p className="text-xl font-bold text-neutral-800">{resumenIndividual.porcentajeCumplimiento}%</p>
+      {equipoConActividad.length > 0 && (
+        <div>
+          <h3 className="font-bold text-neutral-800 mb-2">Con actividad programada este mes</h3>
+          <div className="table-container">
+            <table className="table">
+              <thead className="table-header">
+                <tr>
+                  <th className="table-header-cell">Gestor</th>
+                  <th className="table-header-cell">Programadas</th>
+                  <th className="table-header-cell">Cumplidas</th>
+                  <th className="table-header-cell">Vencidas</th>
+                  <th className="table-header-cell">Cumplimiento</th>
+                </tr>
+              </thead>
+              <tbody className="table-body">
+                {equipoConActividad.map((fila) => (
+                  <tr key={fila.gestorId} className="table-row">
+                    <td className="table-cell font-semibold">{fila.nombre}</td>
+                    <td className="table-cell">{fila.programadasMes}</td>
+                    <td className="table-cell">{fila.cumplidasMes}</td>
+                    <td className="table-cell text-red-600">{fila.vencidasMes}</td>
+                    <td className="table-cell font-bold">{fila.porcentajeCumplimiento}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {resumenEquipo.length > 0 && (
-        <div className="table-container">
-          <table className="table">
-            <thead className="table-header">
-              <tr>
-                <th className="table-header-cell">Gestor</th>
-                <th className="table-header-cell">Programadas</th>
-                <th className="table-header-cell">Cumplidas</th>
-                <th className="table-header-cell">Vencidas</th>
-                <th className="table-header-cell">Cumplimiento</th>
-              </tr>
-            </thead>
-            <tbody className="table-body">
-              {resumenEquipo.map((fila) => (
-                <tr key={fila.gestorId} className="table-row">
-                  <td className="table-cell font-semibold">{fila.nombre}</td>
-                  <td className="table-cell">{fila.programadasMes}</td>
-                  <td className="table-cell">{fila.cumplidasMes}</td>
-                  <td className="table-cell text-red-600">{fila.vencidasMes}</td>
-                  <td className="table-cell font-bold">{fila.porcentajeCumplimiento}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {equipoSinActividad.length > 0 && (
+        <div>
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={() => setMostrarSinActividad((v) => !v)}
+          >
+            {mostrarSinActividad ? 'Ocultar' : 'Mostrar'} {equipoSinActividad.length} gestor
+            {equipoSinActividad.length === 1 ? '' : 'es'} sin nada programado este mes
+          </button>
+          {mostrarSinActividad && (
+            <div className="table-container mt-3">
+              <table className="table">
+                <tbody className="table-body">
+                  {equipoSinActividad.map((fila) => (
+                    <tr key={fila.gestorId} className="table-row">
+                      <td className="table-cell text-neutral-600">{fila.nombre}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

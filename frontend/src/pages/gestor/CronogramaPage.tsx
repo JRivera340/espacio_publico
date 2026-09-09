@@ -116,46 +116,50 @@ export const CronogramaPage = () => {
               </section>
             )}
 
+            {/* Calendario y detalle del dia lado a lado en escritorio: elegir
+                un dia y ver que toca hacer es una sola accion, no una que
+                obligue a bajar la pagina para llegar a la respuesta. */}
             <section className="card">
-              <MonthCalendar
-                mes={mes}
-                onMesChange={setMes}
-                items={items}
-                diaSeleccionado={diaSeleccionado}
-                onSeleccionarDia={setDiaSeleccionado}
-              />
-            </section>
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+                <MonthCalendar
+                  mes={mes}
+                  onMesChange={setMes}
+                  items={items}
+                  diaSeleccionado={diaSeleccionado}
+                  onSeleccionarDia={setDiaSeleccionado}
+                />
 
-            <section className="card">
-              <div className="card-header">
-                <h2 className="card-title">
-                  {diaSeleccionado
-                    ? format(diaSeleccionado, "EEEE d 'de' MMMM", { locale: es })
-                    : 'Selecciona un dia'}
-                </h2>
-                <p className="card-subtitle">{itemsDelDiaSeleccionado.length} actividades programadas ese dia</p>
-              </div>
-              {itemsDelDiaSeleccionado.length === 0 ? (
-                items.length === 0 ? (
-                  <div className="empty-state">
-                    <p className="empty-state-title">No tenes actividades programadas</p>
-                    <p className="empty-state-description">
-                      Cuando el area cargue la programacion, tus actividades aparecen aca.
-                    </p>
-                    <Link to="/gestor/dashboard" className="btn-secondary mt-4 inline-flex">
-                      Ir a mis actividades
-                    </Link>
-                  </div>
-                ) : (
-                  <p className="text-neutral-500">Ningun operativo programado para este dia.</p>
-                )
-              ) : (
-                <div className="space-y-3">
-                  {itemsDelDiaSeleccionado.map((item) => (
-                    <Fila key={item.id} item={item} />
-                  ))}
+                <div className="lg:sticky lg:top-4 lg:border-l lg:border-neutral-100 lg:pl-6">
+                  <h2 className="card-title">
+                    {diaSeleccionado
+                      ? format(diaSeleccionado, "EEEE d 'de' MMMM", { locale: es })
+                      : 'Selecciona un dia'}
+                  </h2>
+                  <p className="card-subtitle mb-4">{itemsDelDiaSeleccionado.length} actividades programadas ese dia</p>
+
+                  {itemsDelDiaSeleccionado.length === 0 ? (
+                    items.length === 0 ? (
+                      <div className="empty-state !py-6">
+                        <p className="empty-state-title">No tenes actividades programadas</p>
+                        <p className="empty-state-description">
+                          Cuando el area cargue la programacion, tus actividades aparecen aca.
+                        </p>
+                        <Link to="/gestor/dashboard" className="btn-secondary mt-4 inline-flex">
+                          Ir a mis actividades
+                        </Link>
+                      </div>
+                    ) : (
+                      <p className="text-neutral-500 text-sm">Ningun operativo programado para este dia.</p>
+                    )
+                  ) : (
+                    <div className="space-y-3">
+                      {itemsDelDiaSeleccionado.map((item) => (
+                        <Fila key={item.id} item={item} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </section>
           </>
         )}
