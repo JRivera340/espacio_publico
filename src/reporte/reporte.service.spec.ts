@@ -5,6 +5,8 @@ import { OperativoSubtipo } from '../actividades/enums/operativo-subtipo.enum';
 import { Turno } from '../actividades/enums/turno.enum';
 import type { Actividad } from '../actividades/actividades.repository';
 import { ActividadesController } from '../actividades/actividades.controller';
+import { ProgramacionEstado } from '../programacion/enums/programacion-estado.enum';
+import type { ProgramacionItem } from '../programacion/programacion.repository';
 
 function actividad(over: Partial<Actividad> = {}): Actividad {
   return {
@@ -123,6 +125,47 @@ describe('ReporteService', () => {
     );
     expect(fila['Entidad responsable']).toBe('');
     expect(fila['Operativos 1801']).toBe('');
+  });
+});
+
+function itemProgramacion(over: Partial<ProgramacionItem> = {}): ProgramacionItem {
+  return {
+    id: 'item-1',
+    fecha: '2026-09-05T14:00:00.000Z',
+    barrio: 'LA MACARENA',
+    descripcion: 'Recorrido de control',
+    gestorUserIds: ['gestor-1'],
+    creadoPorUserId: 'validador-1',
+    estado: ProgramacionEstado.PENDIENTE,
+    actividadId: null,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    updatedAt: '2026-09-01T00:00:00.000Z',
+    ...over,
+  };
+}
+
+describe('ReporteService.generarPazYSalvoPdf', () => {
+  const service = new ReporteService();
+
+  it('devuelve un PDF real, no vacio', async () => {
+    const buffer = await service.generarPazYSalvoPdf(
+      [actividad()],
+      [itemProgramacion()],
+      { nombreGestor: 'Rosa Diaz', desde: '2026-09-01', hasta: '2026-09-30' },
+    );
+
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(500);
+    // Todo PDF valido empieza con esta cabecera - es la unica verificacion de
+    // contenido que tiene sentido sin sumar una libreria de parseo de PDF
+    // solo para el test.
+    expect(buffer.subarray(0, 4).toString('latin1')).toBe('%PDF');
+  });
+
+  it('funciona con listas vacias, sin actividades ni programacion en el periodo', async () => {
+    const buffer = await service.generarPazYSalvoPdf([], [], { nombreGestor: 'Rosa Diaz', desde: '2026-09-01', hasta: '2026-09-30' });
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.subarray(0, 4).toString('latin1')).toBe('%PDF');
   });
 });
 

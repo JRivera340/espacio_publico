@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as XLSX from 'xlsx';
+import PDFDocument from 'pdfkit';
 import type { Actividad } from '../actividades/actividades.repository';
+import type { ProgramacionItem } from '../programacion/programacion.repository';
 import { codigoVisible } from '../actividades/lib/codigo';
 
 // Columnas fijas del reporte, en orden. Despues de estas se agregan las
@@ -54,5 +56,72 @@ export class ReporteService {
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, 'Actividades');
     return XLSX.write(libro, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  // Documento propio del gestor: lo que tenia asignado, lo que completo y lo
+  // que no, en un periodo. Es lo que necesita para respaldar su cobro - no
+  // lleva datos de otros gestores ni de otras areas.
+  async generarPazYSalvoPdf(
+    actividades: Actividad[],
+    programacion: ProgramacionItem[],
+    opciones: { nombreGestor: string; desde: string; hasta: string },
+  ): Promise<Buffer> {
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    const listo = new Promise<Buffer>((resolve) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+
+    const cumplidas = programacion.filter((p) => p.estado === 'CUMPLIDA').length;
+    const canceladas = programacion.filter((p) => p.estado === 'CANCELADA').length;
+    const pendientes = programacion.length - cumplidas - canceladas;
+
+    doc.fontSize(18).text('Paz y salvo - Espacio Publico', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(11).fillColor('#555555');
+    doc.text(`Gestor: ${opciones.nombreGestor}`);
+    doc.text(`Periodo: ${opciones.desde} a ${opciones.hasta}`);
+    doc.text(`Generado: ${new Date().toISOString().slice(0, 10)}`);
+    doc.fillColor('#000000');
+    doc.moveDown(1);
+
+    doc.fontSize(14).text('Resumen del periodo', { underline: true });
+    doc.moveDown(0.3);
+    doc.fontSize(11);
+    doc.text(`Tareas programadas: ${programacion.length}`);
+    doc.text(`Completadas: ${cumplidas}`);
+    doc.text(`Pendientes: ${pendientes}`);
+    doc.text(`Canceladas: ${canceladas}`);
+    doc.text(`Actividades registradas: ${actividades.length}`);
+    doc.moveDown(1);
+
+    doc.fontSize(14).text('Tareas programadas', { underline: true });
+    doc.moveDown(0.3);
+    doc.fontSize(9);
+    if (programacion.length === 0) {
+      doc.text('No hubo tareas programadas en este periodo.');
+    } else {
+      for (const item of programacion) {
+        const fecha = item.fecha.slice(0, 10);
+        doc.text(`${fecha}  ${(item.barrio ?? 'Sin barrio').padEnd(24)}  ${item.estado.padEnd(11)}  ${item.descripcion}`);
+      }
+    }
+    doc.moveDown(1);
+
+    doc.fontSize(14).text('Actividades registradas', { underline: true });
+    doc.moveDown(0.3);
+    doc.fontSize(9);
+    if (actividades.length === 0) {
+      doc.text('No se registraron actividades en este periodo.');
+    } else {
+      for (const a of actividades) {
+        const fecha = a.dateTime.slice(0, 10);
+        doc.text(`${fecha}  ${a.barrio.padEnd(24)}  ${a.status.padEnd(11)}  ${a.results.slice(0, 60)}`);
+      }
+    }
+
+    doc.end();
+    return listo;
   }
 }
