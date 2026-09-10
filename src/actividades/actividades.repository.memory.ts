@@ -123,7 +123,8 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
 
     if (role === 'GESTOR_ESPACIO_PUBLICO') {
       const esDueno = fila.createdByUserId === userId;
-      if (!(fila.status === ActividadStatus.RECHAZADA && esDueno)) {
+      const esInvolucrado = (fila.gestoresInvolucradosIds ?? []).includes(userId);
+      if (!(fila.status === ActividadStatus.RECHAZADA && (esDueno || esInvolucrado))) {
         throw new ForbiddenException('Solo puedes editar tus actividades rechazadas');
       }
     } else if (role === 'VALIDADOR_ESPACIO_PUBLICO') {

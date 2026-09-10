@@ -175,6 +175,29 @@ describe('InMemoryActividadesRepository', () => {
       const reasignada = await repo.patch(a.id, 'admin-id', 'ADMIN', { createdByUserId: 'otro' });
       expect(reasignada.createdByUserId).toBe('otro');
     });
+
+    it('un gestor acompanante tambien puede editar la actividad rechazada, no solo el dueno', async () => {
+      const creada = await repo.create('gestor-dueno', {
+        ...entrada(),
+        gestoresInvolucradosIds: ['gestor-acompanante'],
+      } as any);
+      await repo.patch(creada.id, 'gestor-dueno', 'ADMIN', { status: ActividadStatus.RECHAZADA } as any);
+
+      const editada = await repo.patch(creada.id, 'gestor-acompanante', 'GESTOR_ESPACIO_PUBLICO', {
+        results: 'correccion del acompanante',
+      });
+
+      expect(editada.results).toBe('correccion del acompanante');
+    });
+
+    it('un gestor que no es dueno ni acompanante sigue sin poder editar', async () => {
+      const creada = await repo.create('gestor-dueno', entrada());
+      await repo.patch(creada.id, 'gestor-dueno', 'ADMIN', { status: ActividadStatus.RECHAZADA } as any);
+
+      await expect(
+        repo.patch(creada.id, 'gestor-ajeno', 'GESTOR_ESPACIO_PUBLICO', { results: 'x' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 
   describe('filtros de ListFilters', () => {

@@ -107,7 +107,8 @@ export class TypeOrmActividadesRepository implements ActividadesRepository {
 
     if (role === 'GESTOR_ESPACIO_PUBLICO') {
       const esDueno = entity.createdByUserId === userId;
-      if (!(entity.status === ActividadStatus.RECHAZADA && esDueno)) {
+      const esInvolucrado = (entity.gestoresInvolucradosIds ?? []).includes(userId);
+      if (!(entity.status === ActividadStatus.RECHAZADA && (esDueno || esInvolucrado))) {
         throw new ForbiddenException('Solo puedes editar tus actividades rechazadas');
       }
     } else if (role === 'VALIDADOR_ESPACIO_PUBLICO') {
