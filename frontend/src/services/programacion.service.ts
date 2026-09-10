@@ -11,7 +11,7 @@ export interface ProgramacionItem {
   fecha: string;
   barrio?: string | null;
   descripcion: string;
-  gestorUserId?: string | null;
+  gestorUserIds: string[];
   creadoPorUserId: string;
   estado: ProgramacionEstado;
   actividadId?: string | null;
@@ -25,7 +25,7 @@ export interface NuevoProgramacionItem {
   fecha: string;
   barrio?: string;
   descripcion: string;
-  gestorUserId?: string;
+  gestorUserIds?: string[];
 }
 
 export interface FiltrosProgramacion {

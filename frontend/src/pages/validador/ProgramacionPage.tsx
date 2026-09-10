@@ -14,16 +14,17 @@ import { mensajeDeError } from '../../utils/errorMessage';
 import { Loading } from '../../components/Loading';
 import { Toast } from '../../components/Toast';
 import { EquipoCronogramaPanel } from '../../components/EquipoCronogramaPanel';
+import { MultiSelectCombobox } from '../../components/MultiSelectCombobox';
 import type { Actividad } from '../../types';
 
 interface FilaNueva {
   fecha: string;
   barrio: string;
   descripcion: string;
-  gestorUserId: string;
+  gestoresIds: string[];
 }
 
-const FILA_VACIA: FilaNueva = { fecha: '', barrio: '', descripcion: '', gestorUserId: '' };
+const FILA_VACIA: FilaNueva = { fecha: '', barrio: '', descripcion: '', gestoresIds: [] };
 
 const ETIQUETA_ESTADO: Record<string, string> = {
   PENDIENTE: 'Pendiente',
@@ -99,8 +100,12 @@ export const ProgramacionPage = () => {
     };
   }, [vista]);
 
-  const cambiarFila = (indice: number, campo: keyof FilaNueva, valor: string) => {
+  const cambiarFila = (indice: number, campo: Exclude<keyof FilaNueva, 'gestoresIds'>, valor: string) => {
     setFilas((previas) => previas.map((f, i) => (i === indice ? { ...f, [campo]: valor } : f)));
+  };
+
+  const cambiarFilaGestores = (indice: number, gestoresIds: string[]) => {
+    setFilas((previas) => previas.map((f, i) => (i === indice ? { ...f, gestoresIds } : f)));
   };
 
   const agregarFila = () => setFilas((previas) => [...previas, { ...FILA_VACIA }]);
@@ -118,7 +123,7 @@ export const ProgramacionPage = () => {
       fecha: new Date(f.fecha).toISOString(),
       descripcion: f.descripcion.trim(),
       ...(f.barrio ? { barrio: f.barrio } : {}),
-      ...(f.gestorUserId ? { gestorUserId: f.gestorUserId } : {}),
+      ...(f.gestoresIds.length > 0 ? { gestorUserIds: f.gestoresIds } : {}),
     }));
 
     setGuardando(true);
@@ -223,22 +228,14 @@ export const ProgramacionPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="input-label" htmlFor={`gestor-${i}`}>
-                    Gestor asignado
-                  </label>
-                  <select
-                    id={`gestor-${i}`}
-                    className="select-field"
-                    value={fila.gestorUserId}
-                    onChange={(e) => cambiarFila(i, 'gestorUserId', e.target.value)}
-                  >
-                    <option value="">Sin asignar</option>
-                    {gestores.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.nombre}
-                      </option>
-                    ))}
-                  </select>
+                  <MultiSelectCombobox
+                    legend="Gestores asignados"
+                    placeholder="Sin asignar"
+                    options={gestores.map((g) => ({ value: g.id, label: g.nombre }))}
+                    selected={fila.gestoresIds}
+                    onChange={(seleccion) => cambiarFilaGestores(i, seleccion)}
+                    emptyMessage="No hay gestores del area para asignar."
+                  />
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
@@ -314,7 +311,11 @@ export const ProgramacionPage = () => {
                       </td>
                       <td className="table-cell">{item.barrio || 'Sin definir'}</td>
                       <td className="table-cell">{item.descripcion}</td>
-                      <td className="table-cell">{nombreDeGestor(item.gestorUserId)}</td>
+                      <td className="table-cell">
+                        {item.gestorUserIds.length === 0
+                          ? 'Sin asignar'
+                          : item.gestorUserIds.map((id) => nombreDeGestor(id)).join(', ')}
+                      </td>
                       <td className="table-cell">{ETIQUETA_ESTADO[item.estado] ?? item.estado}</td>
                       <td className="table-cell text-right">
                         <button type="button" className="btn-ghost btn-sm" onClick={() => eliminar(item.id)}>
