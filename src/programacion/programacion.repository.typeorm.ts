@@ -20,7 +20,7 @@ export class TypeOrmProgramacionRepository implements ProgramacionRepository {
       fecha: new Date(data.fecha),
       barrio: data.barrio ?? null,
       descripcion: data.descripcion,
-      gestorUserId: data.gestorUserId ?? null,
+      gestorUserIds: data.gestorUserIds ?? [],
       estado: data.estado ?? ProgramacionEstado.PENDIENTE,
       actividadId: data.actividadId ?? null,
     }));
@@ -52,7 +52,7 @@ export class TypeOrmProgramacionRepository implements ProgramacionRepository {
   async listMine(gestorUserId: string, filters?: ListFilters): Promise<Pagina> {
     const qb = this.repo
       .createQueryBuilder('p')
-      .where('p.gestorUserId = :gestorUserId', { gestorUserId });
+      .where(':gestorUserId = ANY(p."gestorUserIds")', { gestorUserId });
     this.aplicarFiltrosComunes(qb, filters);
     qb.orderBy('p.fecha', 'ASC');
     return this.ejecutarPagina(qb, filters);
@@ -71,9 +71,25 @@ export class TypeOrmProgramacionRepository implements ProgramacionRepository {
     await this.repo.remove(entity);
   }
 
+  async completarCoincidentes(gestorIds: string[], barrio: string, fechaISO: string, actividadId: string): Promise<void> {
+    if (gestorIds.length === 0) return;
+    await this.repo
+      .createQueryBuilder()
+      .update(ProgramacionItemEntity)
+      .set({ estado: ProgramacionEstado.CUMPLIDA, actividadId })
+      .where('estado = :pendiente', { pendiente: ProgramacionEstado.PENDIENTE })
+      .andWhere('barrio = :barrio', { barrio })
+      .andWhere(
+        `DATE(fecha AT TIME ZONE 'America/Bogota') = DATE(CAST(:fecha AS timestamptz) AT TIME ZONE 'America/Bogota')`,
+        { fecha: fechaISO },
+      )
+      .andWhere('"gestorUserIds" && :gestorIds', { gestorIds })
+      .execute();
+  }
+
   private aplicarFiltrosComunes(qb: ReturnType<Repository<ProgramacionItemEntity>['createQueryBuilder']>, filters?: ListFilters): void {
     if (filters?.estado) qb.andWhere('p.estado = :estado', { estado: filters.estado });
-    if (filters?.gestor) qb.andWhere('p.gestorUserId = :gestor', { gestor: filters.gestor });
+    if (filters?.gestor) qb.andWhere(':gestor = ANY(p."gestorUserIds")', { gestor: filters.gestor });
     if (filters?.desde && filters.desde.trim()) {
       qb.andWhere(`DATE(p.fecha AT TIME ZONE 'America/Bogota') >= CAST(:desde AS DATE)`, { desde: filters.desde.trim() });
     }
@@ -112,7 +128,7 @@ export class TypeOrmProgramacionRepository implements ProgramacionRepository {
       fecha: safeToISO(entity.fecha) || new Date().toISOString(),
       barrio: entity.barrio ?? null,
       descripcion: entity.descripcion,
-      gestorUserId: entity.gestorUserId ?? null,
+      gestorUserIds: entity.gestorUserIds ?? [],
       creadoPorUserId: entity.creadoPorUserId,
       estado: entity.estado,
       actividadId: entity.actividadId ?? null,
