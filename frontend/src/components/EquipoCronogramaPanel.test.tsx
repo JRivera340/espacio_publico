@@ -10,8 +10,8 @@ afterEach(cleanup);
 const GESTORES = [{ id: 'g-1', nombre: 'Ana Perez' }, { id: 'g-2', nombre: 'Luis Mora' }];
 
 const PROGRAMACION: ProgramacionItem[] = [
-  { id: '1', fecha: '2026-09-15T15:00:00.000Z', descripcion: 'Operativo andenes', barrio: 'LAS CRUCES', estado: 'PENDIENTE', gestorUserId: 'g-1', creadoPorUserId: 'v-1' },
-  { id: '2', fecha: '2026-09-16T15:00:00.000Z', descripcion: 'Operativo cachivacheros', barrio: 'SAN DIEGO', estado: 'CUMPLIDA', gestorUserId: 'g-2', creadoPorUserId: 'v-1' },
+  { id: '1', fecha: '2026-09-15T15:00:00.000Z', descripcion: 'Operativo andenes', barrio: 'LAS CRUCES', estado: 'PENDIENTE', gestorUserIds: ['g-1'], creadoPorUserId: 'v-1' },
+  { id: '2', fecha: '2026-09-16T15:00:00.000Z', descripcion: 'Operativo cachivacheros', barrio: 'SAN DIEGO', estado: 'CUMPLIDA', gestorUserIds: ['g-2'], creadoPorUserId: 'v-1' },
 ];
 
 function conFechaFija(fechaIso: string, fn: () => void) {

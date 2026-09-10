@@ -58,7 +58,7 @@ export function resumenPorGestor(
   return gestores
     .map((g) => {
       const resumen = resumenDelMes(
-        programacion.filter((p) => p.gestorUserId === g.id),
+        programacion.filter((p) => p.gestorUserIds.includes(g.id)),
         actividades.filter((a) => a.createdByUserId === g.id),
         mesRef,
         ahora,

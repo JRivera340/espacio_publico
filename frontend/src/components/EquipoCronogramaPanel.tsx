@@ -27,7 +27,7 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
   const [mostrarSinActividad, setMostrarSinActividad] = useState(false);
 
   const programacionFiltrada = useMemo(
-    () => (gestorId ? programacion.filter((p) => p.gestorUserId === gestorId) : programacion),
+    () => (gestorId ? programacion.filter((p) => p.gestorUserIds.includes(gestorId)) : programacion),
     [programacion, gestorId],
   );
 
@@ -114,7 +114,9 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
                       <span className="text-xs font-semibold text-neutral-500 shrink-0">{item.estado}</span>
                     </div>
                     <p className="text-xs text-neutral-500 mt-0.5">
-                      {nombreDeGestor(item.gestorUserId)}
+                      {item.gestorUserIds.length === 0
+                        ? 'Sin asignar'
+                        : item.gestorUserIds.map((id) => nombreDeGestor(id)).join(', ')}
                       {item.barrio ? ` - ${item.barrio}` : ''}
                     </p>
                   </div>

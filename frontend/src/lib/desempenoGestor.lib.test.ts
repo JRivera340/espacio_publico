@@ -8,7 +8,7 @@ const AHORA = new Date(2026, 8, 20, 12); // 20 de septiembre 2026, mediodia
 
 function item(fecha: string, estado: ProgramacionItem['estado']): ProgramacionItem {
   return {
-    id: fecha + estado, fecha, descripcion: 'x', estado, creadoPorUserId: 'v-1',
+    id: fecha + estado, fecha, descripcion: 'x', estado, creadoPorUserId: 'v-1', gestorUserIds: [],
   };
 }
 
@@ -65,12 +65,11 @@ describe('desempenoGestor.lib', () => {
   it('resumenPorGestor agrupa cada gestor con lo suyo y ordena por cumplimiento descendente', () => {
     const gestores = [{ id: 'g-1', nombre: 'Ana Perez' }, { id: 'g-2', nombre: 'Luis Mora' }];
     const programacion: ProgramacionItem[] = [
-      item('2026-09-05T10:00:00.000Z', 'CUMPLIDA'), // sin gestorUserId, no cuenta para ninguno
+      item('2026-09-05T10:00:00.000Z', 'CUMPLIDA'), // sin gestorUserIds, no cuenta para ninguno
     ];
-    (programacion[0] as any).gestorUserId = undefined;
 
     const conGestor = (fecha: string, estado: ProgramacionItem['estado'], gestorUserId: string): ProgramacionItem => ({
-      ...item(fecha, estado), gestorUserId,
+      ...item(fecha, estado), gestorUserIds: [gestorUserId],
     });
 
     const lista: ProgramacionItem[] = [
@@ -92,7 +91,7 @@ describe('desempenoGestor.lib', () => {
     const gestores = [{ id: 'g-1', nombre: 'Ana Perez' }, { id: 'g-2', nombre: 'Luis Mora' }];
 
     const conGestor = (fecha: string, estado: ProgramacionItem['estado'], gestorUserId: string): ProgramacionItem => ({
-      ...item(fecha, estado), gestorUserId,
+      ...item(fecha, estado), gestorUserIds: [gestorUserId],
     });
 
     // Ana no tiene nada programado este mes (base 0, cumplimiento 100 por defecto).
@@ -109,5 +108,15 @@ describe('desempenoGestor.lib', () => {
     expect(resumen[0].porcentajeCumplimiento).toBe(90);
     expect(resumen[1].nombre).toBe('Ana Perez');
     expect(resumen[1].porcentajeCumplimiento).toBe(100);
+  });
+
+  it('resumenDelMes cuenta una tarea con varios gestores para cualquiera de ellos', () => {
+    const programacion: ProgramacionItem[] = [
+      { id: '1', fecha: '2026-09-05T10:00:00.000Z', descripcion: 'x', estado: 'CUMPLIDA', gestorUserIds: ['g-1', 'g-2'], creadoPorUserId: 'v-1' },
+    ];
+    const resumenA = resumenDelMes(programacion.filter((p) => p.gestorUserIds.includes('g-1')), [], new Date(2026, 8, 1), new Date());
+    const resumenB = resumenDelMes(programacion.filter((p) => p.gestorUserIds.includes('g-2')), [], new Date(2026, 8, 1), new Date());
+    expect(resumenA.cumplidasMes).toBe(1);
+    expect(resumenB.cumplidasMes).toBe(1);
   });
 });

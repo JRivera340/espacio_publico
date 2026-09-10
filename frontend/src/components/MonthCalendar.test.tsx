@@ -5,8 +5,8 @@ import { MonthCalendar } from './MonthCalendar';
 import type { ProgramacionItem } from '../services/programacion.service';
 
 const ITEMS: ProgramacionItem[] = [
-  { id: '1', fecha: '2026-09-15T10:00:00.000Z', descripcion: 'Operativo A', estado: 'PENDIENTE', creadoPorUserId: 'v-1' },
-  { id: '2', fecha: '2026-09-15T14:00:00.000Z', descripcion: 'Operativo B', estado: 'CUMPLIDA', creadoPorUserId: 'v-1' },
+  { id: '1', fecha: '2026-09-15T10:00:00.000Z', descripcion: 'Operativo A', estado: 'PENDIENTE', creadoPorUserId: 'v-1', gestorUserIds: [] },
+  { id: '2', fecha: '2026-09-15T14:00:00.000Z', descripcion: 'Operativo B', estado: 'CUMPLIDA', creadoPorUserId: 'v-1', gestorUserIds: [] },
 ];
 
 describe('MonthCalendar', () => {
