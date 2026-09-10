@@ -52,10 +52,12 @@ function formatearFecha(d: Date): string {
 // repetir el criterio de estado: si manana cambia que estados se corrigen, el
 // dashboard y la pantalla de edicion no pueden opinar distinto.
 export function puedeEditar(
-  actividad: Pick<Actividad, 'status' | 'createdByUserId'>,
+  actividad: Pick<Actividad, 'status' | 'createdByUserId' | 'gestoresInvolucradosIds'>,
   userId: string | undefined,
 ): boolean {
   if (!userId) return false;
-  if (actividad.createdByUserId !== userId) return false;
+  const esDueno = actividad.createdByUserId === userId;
+  const esInvolucrado = (actividad.gestoresInvolucradosIds ?? []).includes(userId);
+  if (!esDueno && !esInvolucrado) return false;
   return esEditable(actividad);
 }

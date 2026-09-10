@@ -96,4 +96,22 @@ describe('puedeEditar', () => {
   it('sin usuario identificado no se corrige nada', () => {
     expect(puedeEditar({ status: 'RECHAZADA', createdByUserId: 'g1' }, undefined)).toBe(false);
   });
+
+  it('un gestor acompanante puede editar la actividad rechazada, no solo el dueno', () => {
+    const actividad = {
+      status: 'RECHAZADA' as const,
+      createdByUserId: 'gestor-dueno',
+      gestoresInvolucradosIds: ['gestor-acompanante'],
+    };
+    expect(puedeEditar(actividad, 'gestor-acompanante')).toBe(true);
+  });
+
+  it('un gestor que no es dueno ni acompanante no puede editar', () => {
+    const actividad = {
+      status: 'RECHAZADA' as const,
+      createdByUserId: 'gestor-dueno',
+      gestoresInvolucradosIds: ['gestor-acompanante'],
+    };
+    expect(puedeEditar(actividad, 'gestor-ajeno')).toBe(false);
+  });
 });
