@@ -14,7 +14,7 @@ export class InMemoryProgramacionRepository implements ProgramacionRepository {
       fecha: new Date(data.fecha).toISOString(),
       barrio: data.barrio ?? null,
       descripcion: data.descripcion,
-      gestorUserId: data.gestorUserId ?? null,
+      gestorUserIds: data.gestorUserIds ?? [],
       creadoPorUserId,
       estado: data.estado ?? ProgramacionEstado.PENDIENTE,
       actividadId: data.actividadId ?? null,
@@ -41,7 +41,7 @@ export class InMemoryProgramacionRepository implements ProgramacionRepository {
   }
 
   async listMine(gestorUserId: string, filters?: ListFilters): Promise<Pagina> {
-    const propias = this.filas.filter((f) => f.gestorUserId === gestorUserId);
+    const propias = this.filas.filter((f) => f.gestorUserIds.includes(gestorUserId));
     return this.paginar(this.aplicarFiltros(propias, filters), filters);
   }
 
@@ -55,6 +55,19 @@ export class InMemoryProgramacionRepository implements ProgramacionRepository {
     this.filas.splice(idx, 1);
   }
 
+  async completarCoincidentes(gestorIds: string[], barrio: string, fechaISO: string, actividadId: string): Promise<void> {
+    const diaObjetivo = soloFechaBogota(fechaISO);
+    for (const fila of this.filas) {
+      if (fila.estado !== ProgramacionEstado.PENDIENTE) continue;
+      if (fila.barrio !== barrio) continue;
+      if (soloFechaBogota(fila.fecha) !== diaObjetivo) continue;
+      if (!fila.gestorUserIds.some((id) => gestorIds.includes(id))) continue;
+      fila.estado = ProgramacionEstado.CUMPLIDA;
+      fila.actividadId = actividadId;
+      fila.updatedAt = new Date().toISOString();
+    }
+  }
+
   private buscar(id: string): ProgramacionItem {
     const fila = this.filas.find((f) => f.id === id);
     if (!fila) throw new NotFoundException('Programacion no encontrada');
@@ -64,7 +77,7 @@ export class InMemoryProgramacionRepository implements ProgramacionRepository {
   private aplicarFiltros(filas: ProgramacionItem[], filters?: ListFilters): ProgramacionItem[] {
     let resultado = filas;
     if (filters?.estado) resultado = resultado.filter((f) => f.estado === filters.estado);
-    if (filters?.gestor) resultado = resultado.filter((f) => f.gestorUserId === filters.gestor);
+    if (filters?.gestor) resultado = resultado.filter((f) => f.gestorUserIds.includes(filters.gestor!));
     if (filters?.desde && filters.desde.trim()) {
       resultado = resultado.filter((f) => f.fecha.slice(0, 10) >= filters.desde!.trim());
     }
@@ -85,4 +98,11 @@ export class InMemoryProgramacionRepository implements ProgramacionRepository {
   private clonar(item: ProgramacionItem): ProgramacionItem {
     return { ...item };
   }
+}
+
+// Fecha calendario en hora de Bogota, sin la hora - "mismo dia" para el
+// autocompletado se decide por esta comparacion, igual criterio que los
+// filtros desde/hasta de listAll/listMine en el repositorio typeorm.
+function soloFechaBogota(fechaISO: string): string {
+  return new Date(fechaISO).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 }

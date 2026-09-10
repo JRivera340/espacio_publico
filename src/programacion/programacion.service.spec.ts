@@ -7,11 +7,13 @@ const VALIDADOR = '00000000-0000-0000-0000-000000000001';
 const GESTOR_A = '00000000-0000-0000-0000-000000000002';
 const GESTOR_B = '00000000-0000-0000-0000-000000000003';
 
-const item = (over: Partial<{ fecha: string; barrio: string; descripcion: string; gestorUserId: string }> = {}) => ({
+const item = (over: Partial<{
+  fecha: string; barrio: string; descripcion: string; gestorUserIds: string[]; estado: ProgramacionEstado;
+}> = {}) => ({
   fecha: '2026-09-01T14:00:00.000Z',
   barrio: 'LA MACARENA',
   descripcion: 'Recorrido de control de espacio publico',
-  gestorUserId: GESTOR_A,
+  gestorUserIds: over.gestorUserIds ?? [GESTOR_A],
   ...over,
 });
 
@@ -27,30 +29,43 @@ describe('ProgramacionService', () => {
   it('crear acepta un lote y devuelve todos los creados', async () => {
     const creadas = await service.crear(VALIDADOR, [
       item({ descripcion: 'Item uno' }),
-      item({ descripcion: 'Item dos', gestorUserId: GESTOR_B }),
+      item({ descripcion: 'Item dos', gestorUserIds: [GESTOR_B] }),
     ]);
 
     expect(creadas).toHaveLength(2);
     expect(creadas[0].creadoPorUserId).toBe(VALIDADOR);
     expect(creadas[0].estado).toBe(ProgramacionEstado.PENDIENTE);
-    expect(creadas[1].gestorUserId).toBe(GESTOR_B);
+    expect(creadas[1].gestorUserIds).toEqual([GESTOR_B]);
   });
 
   describe('listarMias — aislamiento entre gestores', () => {
     it('devuelve solo la programacion del gestor autenticado', async () => {
       await service.crear(VALIDADOR, [
-        item({ descripcion: 'Para A' , gestorUserId: GESTOR_A }),
-        item({ descripcion: 'Para B', gestorUserId: GESTOR_B }),
-        item({ descripcion: 'Otra para A', gestorUserId: GESTOR_A }),
+        item({ descripcion: 'Para A', gestorUserIds: [GESTOR_A] }),
+        item({ descripcion: 'Para B', gestorUserIds: [GESTOR_B] }),
+        item({ descripcion: 'Otra para A', gestorUserIds: [GESTOR_A] }),
       ]);
 
       const deA = await service.listarMias(GESTOR_A);
       expect(deA.total).toBe(2);
-      expect(deA.data.every((d) => d.gestorUserId === GESTOR_A)).toBe(true);
+      expect(deA.data.every((d) => d.gestorUserIds.includes(GESTOR_A))).toBe(true);
 
       const deB = await service.listarMias(GESTOR_B);
       expect(deB.total).toBe(1);
       expect(deB.data[0].descripcion).toBe('Para B');
+    });
+  });
+
+  describe('listarMias — varios gestores por tarea', () => {
+    it('una tarea con varios gestores asignados aparece para cualquiera de ellos', async () => {
+      await service.crear(VALIDADOR, [item({ gestorUserIds: [GESTOR_A, GESTOR_B] })]);
+
+      const paginaA = await service.listarMias(GESTOR_A);
+      const paginaB = await service.listarMias(GESTOR_B);
+
+      expect(paginaA.data).toHaveLength(1);
+      expect(paginaB.data).toHaveLength(1);
+      expect(paginaA.data[0].gestorUserIds).toEqual([GESTOR_A, GESTOR_B]);
     });
   });
 
@@ -87,8 +102,8 @@ describe('ProgramacionService', () => {
 
   it('listarTodas no filtra por gestor', async () => {
     await service.crear(VALIDADOR, [
-      item({ gestorUserId: GESTOR_A }),
-      item({ gestorUserId: GESTOR_B }),
+      item({ gestorUserIds: [GESTOR_A] }),
+      item({ gestorUserIds: [GESTOR_B] }),
     ]);
     const todas = await service.listarTodas();
     expect(todas.total).toBe(2);
@@ -101,5 +116,56 @@ describe('ProgramacionService', () => {
     expect(canceladas.total).toBe(1);
     expect(canceladas.data[0].id).toBe(a.id);
     void b;
+  });
+
+  describe('completarCoincidentes', () => {
+    it('marca CUMPLIDA la tarea pendiente que coincide en gestor, barrio y dia', async () => {
+      const [creada] = await service.crear(VALIDADOR, [
+        item({ fecha: '2026-09-01T14:00:00.000Z', barrio: 'LA MACARENA', gestorUserIds: [GESTOR_A] }),
+      ]);
+
+      await repo.completarCoincidentes([GESTOR_A], 'LA MACARENA', '2026-09-01T18:30:00.000Z', 'actividad-1');
+
+      const actualizada = await service.editar(creada.id, {});
+      expect(actualizada.estado).toBe(ProgramacionEstado.CUMPLIDA);
+      expect(actualizada.actividadId).toBe('actividad-1');
+    });
+
+    it('no toca una tarea de otro barrio ni de otro dia', async () => {
+      const [otroBarrio] = await service.crear(VALIDADOR, [
+        item({ fecha: '2026-09-01T14:00:00.000Z', barrio: 'SAN DIEGO', gestorUserIds: [GESTOR_A] }),
+      ]);
+      const [otroDia] = await service.crear(VALIDADOR, [
+        item({ fecha: '2026-09-02T14:00:00.000Z', barrio: 'LA MACARENA', gestorUserIds: [GESTOR_A] }),
+      ]);
+
+      await repo.completarCoincidentes([GESTOR_A], 'LA MACARENA', '2026-09-01T18:30:00.000Z', 'actividad-1');
+
+      expect((await service.editar(otroBarrio.id, {})).estado).toBe(ProgramacionEstado.PENDIENTE);
+      expect((await service.editar(otroDia.id, {})).estado).toBe(ProgramacionEstado.PENDIENTE);
+    });
+
+    it('no reabre ni pisa una tarea ya CUMPLIDA o CANCELADA', async () => {
+      const [yaCumplida] = await service.crear(VALIDADOR, [
+        item({
+          fecha: '2026-09-01T14:00:00.000Z', barrio: 'LA MACARENA', gestorUserIds: [GESTOR_A], estado: ProgramacionEstado.CUMPLIDA,
+        }),
+      ]);
+
+      await repo.completarCoincidentes([GESTOR_A], 'LA MACARENA', '2026-09-01T18:30:00.000Z', 'actividad-nueva');
+
+      const sigue = await service.editar(yaCumplida.id, {});
+      expect(sigue.actividadId).not.toBe('actividad-nueva');
+    });
+
+    it('completa la tarea si CUALQUIERA de los gestores asignados coincide, no todos', async () => {
+      const [creada] = await service.crear(VALIDADOR, [
+        item({ fecha: '2026-09-01T14:00:00.000Z', barrio: 'LA MACARENA', gestorUserIds: [GESTOR_A, GESTOR_B] }),
+      ]);
+
+      await repo.completarCoincidentes([GESTOR_B], 'LA MACARENA', '2026-09-01T18:30:00.000Z', 'actividad-1');
+
+      expect((await service.editar(creada.id, {})).estado).toBe(ProgramacionEstado.CUMPLIDA);
+    });
   });
 });

@@ -1,5 +1,5 @@
 import {
-  IsEnum, IsISO8601, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength,
+  IsArray, IsEnum, IsISO8601, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength,
 } from 'class-validator';
 import { ProgramacionEstado } from '../enums/programacion-estado.enum';
 
@@ -18,8 +18,9 @@ export class CreateProgramacionItemDto {
   descripcion!: string;
 
   @IsOptional()
-  @IsUUID()
-  gestorUserId?: string;
+  @IsArray()
+  @IsUUID('4', { each: true })
+  gestorUserIds?: string[];
 
   @IsOptional()
   @IsEnum(ProgramacionEstado)

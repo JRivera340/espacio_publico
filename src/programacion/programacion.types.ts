@@ -4,7 +4,7 @@ export type CreateProgramacionInput = {
   fecha: string;
   barrio?: string | null;
   descripcion: string;
-  gestorUserId?: string | null;
+  gestorUserIds?: string[];
   estado?: ProgramacionEstado;
   actividadId?: string | null;
 };

@@ -9,7 +9,7 @@ export type ProgramacionItem = {
   fecha: string;
   barrio?: string | null;
   descripcion: string;
-  gestorUserId?: string | null;
+  gestorUserIds: string[];
   creadoPorUserId: string;
   estado: ProgramacionEstado;
   actividadId?: string | null;
@@ -26,4 +26,8 @@ export interface ProgramacionRepository {
   listMine(gestorUserId: string, filters?: ListFilters): Promise<Pagina>;
   listAll(filters?: ListFilters): Promise<Pagina>;
   delete(id: string): Promise<void>;
+  // Marca CUMPLIDA (y guarda actividadId) cada tarea PENDIENTE que coincida
+  // en barrio, mismo dia (hora Bogota) y al menos un gestor en comun con
+  // gestorIds. No toca tareas CUMPLIDA/CANCELADA ni de otro barrio/dia.
+  completarCoincidentes(gestorIds: string[], barrio: string, fechaISO: string, actividadId: string): Promise<void>;
 }
