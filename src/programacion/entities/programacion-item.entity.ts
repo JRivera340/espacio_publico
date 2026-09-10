@@ -24,10 +24,12 @@ export class ProgramacionItemEntity {
   @Column({ type: 'text' })
   descripcion: string;
 
-  // Puede faltar hasta que el validador decida a quien se lo asigna.
+  // Puede estar vacio hasta que el validador decida a quien se lo asigna, o
+  // tener varios gestores a la vez - una tarea puede repartirse entre el
+  // equipo, y si cualquiera de ellos la completa cuenta para todos.
   @Index()
-  @Column({ type: 'uuid', nullable: true })
-  gestorUserId?: string | null;
+  @Column({ type: 'uuid', array: true, default: '{}' })
+  gestorUserIds: string[];
 
   @Index()
   @Column({ type: 'uuid' })
