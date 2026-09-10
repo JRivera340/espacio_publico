@@ -32,4 +32,11 @@ export class ProgramacionService {
   borrar(id: string) {
     return this.repo.delete(id);
   }
+
+  // Se llama desde ActividadesService.enviar() cuando una actividad real se
+  // manda a validacion: si coincide en gestor, barrio y dia con alguna tarea
+  // PENDIENTE, esa tarea se da por cumplida sola.
+  completarCoincidentes(gestorIds: string[], barrio: string, fechaISO: string, actividadId: string) {
+    return this.repo.completarCoincidentes(gestorIds, barrio, fechaISO, actividadId);
+  }
 }

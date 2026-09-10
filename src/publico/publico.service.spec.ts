@@ -1,6 +1,7 @@
 import { PublicoService } from './publico.service';
 import { ActividadesService } from '../actividades/actividades.service';
 import { InMemoryActividadesRepository } from '../actividades/actividades.repository.memory';
+import { ProgramacionService } from '../programacion/programacion.service';
 
 const GESTOR = '00000000-0000-0000-0000-000000000001';
 const VALIDADOR = '00000000-0000-0000-0000-000000000002';
@@ -21,7 +22,8 @@ describe('PublicoService', () => {
 
   beforeEach(() => {
     repo = new InMemoryActividadesRepository();
-    actividades = new ActividadesService(repo);
+    const programacion = { completarCoincidentes: jest.fn().mockResolvedValue(undefined) } as unknown as ProgramacionService;
+    actividades = new ActividadesService(repo, programacion);
     publico = new PublicoService(actividades);
   });
 

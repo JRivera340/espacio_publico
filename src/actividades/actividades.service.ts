@@ -3,12 +3,14 @@ import { ACTIVIDADES_REPOSITORY } from './actividades.tokens';
 import type { ActividadesRepository } from './actividades.repository';
 import { CreateActividadInput, UpdateActividadInput, ListFilters } from './actividades.types';
 import { Role } from '../common/enums/role.enum';
+import { ProgramacionService } from '../programacion/programacion.service';
 
 @Injectable()
 export class ActividadesService {
   constructor(
     @Inject(ACTIVIDADES_REPOSITORY)
     private readonly repo: ActividadesRepository,
+    private readonly programacionService: ProgramacionService,
   ) {}
 
   crear(createdByUserId: string, dto: CreateActividadInput) {
@@ -64,8 +66,18 @@ export class ActividadesService {
     return this.repo.listPublicadas(filters);
   }
 
-  enviar(id: string, userId: string, role?: string) {
-    return this.repo.send(id, userId, role);
+  // El envio en si nunca se bloquea por el autocompletado: si la busqueda de
+  // tareas coincidentes falla, el gestor ya envio su actividad y eso no se
+  // deshace por un problema aparte. Se registra el error pero no se relanza.
+  async enviar(id: string, userId: string, role?: string) {
+    const enviada = await this.repo.send(id, userId, role);
+    const gestorIds = [enviada.createdByUserId, ...(enviada.gestoresInvolucradosIds ?? [])];
+    try {
+      await this.programacionService.completarCoincidentes(gestorIds, enviada.barrio, enviada.dateTime, enviada.id);
+    } catch (err) {
+      console.error('[ActividadesService] No se pudo autocompletar la programacion:', err);
+    }
+    return enviada;
   }
 
   aprobar(id: string, validatorUserId: string, notes?: string, selectedPhotos?: string[]) {

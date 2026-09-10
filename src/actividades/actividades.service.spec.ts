@@ -2,6 +2,12 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ActividadesService } from './actividades.service';
 import { InMemoryActividadesRepository } from './actividades.repository.memory';
 import { ActividadStatus } from './enums/actividad-status.enum';
+import { ProgramacionService } from '../programacion/programacion.service';
+import type { ActividadesRepository } from './actividades.repository';
+
+function armarProgramacionMock() {
+  return { completarCoincidentes: jest.fn().mockResolvedValue(undefined) } as unknown as ProgramacionService;
+}
 
 const GESTOR = '00000000-0000-0000-0000-000000000001';
 const VALIDADOR = '00000000-0000-0000-0000-000000000002';
@@ -24,7 +30,7 @@ describe('ActividadesService', () => {
 
   beforeEach(() => {
     repo = new InMemoryActividadesRepository();
-    service = new ActividadesService(repo);
+    service = new ActividadesService(repo, armarProgramacionMock());
   });
 
   it('recorre el ciclo completo hasta publicar', async () => {
@@ -116,5 +122,46 @@ describe('ActividadesService', () => {
       const ids = await service.listarIds({}, ADMIN, 'ADMIN');
       expect(ids).toHaveLength(2);
     });
+  });
+});
+
+describe('ActividadesService.enviar — autocompletado de programacion', () => {
+  function armar() {
+    const actividadEnviada = {
+      id: 'actividad-1',
+      createdByUserId: 'gestor-1',
+      gestoresInvolucradosIds: ['gestor-2'],
+      barrio: 'LA MACARENA',
+      dateTime: '2026-09-01T18:30:00.000Z',
+    };
+    const repo = {
+      send: jest.fn().mockResolvedValue(actividadEnviada),
+    } as unknown as ActividadesRepository;
+    const programacion = {
+      completarCoincidentes: jest.fn().mockResolvedValue(undefined),
+    } as unknown as ProgramacionService;
+    const service = new ActividadesService(repo, programacion);
+    return { service, repo, programacion, actividadEnviada };
+  }
+
+  it('llama a completarCoincidentes con el dueno, los acompanantes, el barrio y la fecha de la actividad enviada', async () => {
+    const { service, programacion, actividadEnviada } = armar();
+
+    await service.enviar('actividad-1', 'gestor-1', 'GESTOR_ESPACIO_PUBLICO');
+
+    expect(programacion.completarCoincidentes).toHaveBeenCalledWith(
+      ['gestor-1', 'gestor-2'],
+      'LA MACARENA',
+      '2026-09-01T18:30:00.000Z',
+      'actividad-1',
+    );
+  });
+
+  it('un fallo de completarCoincidentes no revierte ni bloquea el envio ya confirmado', async () => {
+    const { service, programacion, repo } = armar();
+    (programacion.completarCoincidentes as jest.Mock).mockRejectedValue(new Error('fallo de red'));
+
+    await expect(service.enviar('actividad-1', 'gestor-1', 'GESTOR_ESPACIO_PUBLICO')).resolves.toBeDefined();
+    expect(repo.send).toHaveBeenCalled();
   });
 });
