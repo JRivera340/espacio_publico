@@ -83,7 +83,7 @@ export class TypeOrmProgramacionRepository implements ProgramacionRepository {
         `DATE(fecha AT TIME ZONE 'America/Bogota') = DATE(CAST(:fecha AS timestamptz) AT TIME ZONE 'America/Bogota')`,
         { fecha: fechaISO },
       )
-      .andWhere('"gestorUserIds" && :gestorIds', { gestorIds })
+      .andWhere('"gestorUserIds" && CAST(:gestorIds AS uuid[])', { gestorIds })
       .execute();
   }
 

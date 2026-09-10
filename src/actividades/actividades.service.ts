@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { ACTIVIDADES_REPOSITORY } from './actividades.tokens';
 import type { ActividadesRepository } from './actividades.repository';
 import { CreateActividadInput, UpdateActividadInput, ListFilters } from './actividades.types';
@@ -7,6 +7,8 @@ import { ProgramacionService } from '../programacion/programacion.service';
 
 @Injectable()
 export class ActividadesService {
+  private readonly logger = new Logger(ActividadesService.name);
+
   constructor(
     @Inject(ACTIVIDADES_REPOSITORY)
     private readonly repo: ActividadesRepository,
@@ -75,7 +77,7 @@ export class ActividadesService {
     try {
       await this.programacionService.completarCoincidentes(gestorIds, enviada.barrio, enviada.dateTime, enviada.id);
     } catch (err) {
-      console.error('[ActividadesService] No se pudo autocompletar la programacion:', err);
+      this.logger.error(`No se pudo autocompletar la programacion: ${(err as Error).message}`, (err as Error).stack);
     }
     return enviada;
   }
