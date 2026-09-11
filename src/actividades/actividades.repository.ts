@@ -20,6 +20,7 @@ export type Actividad = {
   lng: number;
   barrio: string;
   photos: string[];
+  publishedPhotos: string[];
   results: string;
   incautacionLicores: number;
   incautacionArmasBlancas: number;

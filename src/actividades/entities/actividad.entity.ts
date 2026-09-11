@@ -54,6 +54,13 @@ export class ActividadEntity {
   @Column({ type: 'text', array: true, default: '{}' })
   photos: string[];
 
+  // Subconjunto de "photos" que el validador eligio hacer publico al aprobar.
+  // Separado a proposito de "photos": ese sigue siendo el set completo de
+  // evidencia del operativo para gestor/validador/uso interno, este es solo
+  // lo que ve el visor publico.
+  @Column({ type: 'text', array: true, default: '{}' })
+  publishedPhotos: string[];
+
   @Column({ type: 'text' })
   results: string;
 
