@@ -41,6 +41,7 @@ export class TypeOrmActividadesRepository implements ActividadesRepository {
             lng: data.lng,
             barrio: data.barrio,
             photos: data.photos || [],
+            publishedPhotos: [],
             results: data.results,
             incautacionLicores: data.incautacionLicores || 0,
             incautacionArmasBlancas: data.incautacionArmasBlancas || 0,
@@ -223,7 +224,9 @@ export class TypeOrmActividadesRepository implements ActividadesRepository {
     entity.validatedAt = ahora;
     entity.validationNotes = notes ?? null;
     entity.publishedAt = ahora;
-    if (Array.isArray(selectedPhotos)) entity.photos = selectedPhotos;
+    // La seleccion del validador decide que se publica, no que sobrevive:
+    // "photos" queda intacto como evidencia completa del operativo.
+    if (Array.isArray(selectedPhotos)) entity.publishedPhotos = selectedPhotos;
 
     const saved = await this.repo.save(entity);
     return this.toActividad(saved);
@@ -390,6 +393,7 @@ export class TypeOrmActividadesRepository implements ActividadesRepository {
       lng: entity.lng,
       barrio: entity.barrio,
       photos: entity.photos || [],
+      publishedPhotos: entity.publishedPhotos || [],
       results: entity.results,
       incautacionLicores: entity.incautacionLicores || 0,
       incautacionArmasBlancas: entity.incautacionArmasBlancas || 0,

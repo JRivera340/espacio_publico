@@ -107,9 +107,17 @@ describe('InMemoryActividadesRepository', () => {
       expect(aprobada.validationNotes).toBe('todo correcto');
     });
 
-    it('approve reemplaza las fotos cuando el validador selecciona un subconjunto', async () => {
+    it('approve guarda la seleccion en publishedPhotos y deja photos intacto', async () => {
       const a = await repo.create(GESTOR, entrada({ photos: ['uno.jpg', 'dos.jpg', 'tres.jpg'] }));
       const aprobada = await repo.approve(a.id, VALIDADOR, undefined, ['uno.jpg']);
+      expect(aprobada.publishedPhotos).toEqual(['uno.jpg']);
+      expect(aprobada.photos).toEqual(['uno.jpg', 'dos.jpg', 'tres.jpg']);
+    });
+
+    it('approve sin selectedPhotos deja publishedPhotos vacio', async () => {
+      const a = await repo.create(GESTOR, entrada({ photos: ['uno.jpg'] }));
+      const aprobada = await repo.approve(a.id, VALIDADOR);
+      expect(aprobada.publishedPhotos).toEqual([]);
       expect(aprobada.photos).toEqual(['uno.jpg']);
     });
 

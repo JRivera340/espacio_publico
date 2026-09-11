@@ -17,6 +17,7 @@ function entidad(over: Partial<ActividadEntity> = {}): ActividadEntity {
     lng: -74.07,
     barrio: 'LA MACARENA',
     photos: [],
+    publishedPhotos: [],
     results: 'texto',
     incautacionLicores: 0,
     incautacionArmasBlancas: 0,
@@ -51,8 +52,9 @@ describe('TypeOrmActividadesRepository.toActividad', () => {
   });
 
   it('normaliza los arrays nulos a vacios', () => {
-    const a = mapear(entidad({ photos: null as any, gestoresInvolucradosIds: null as any }));
+    const a = mapear(entidad({ photos: null as any, publishedPhotos: null as any, gestoresInvolucradosIds: null as any }));
     expect(a.photos).toEqual([]);
+    expect(a.publishedPhotos).toEqual([]);
     expect(a.gestoresInvolucradosIds).toEqual([]);
   });
 

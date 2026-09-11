@@ -21,6 +21,7 @@ function actividad(over: Partial<Actividad> = {}): Actividad {
     lng: -74.07,
     barrio: 'LA MACARENA',
     photos: [],
+    publishedPhotos: [],
     results: 'Recuperacion de anden',
     incautacionLicores: 0,
     incautacionArmasBlancas: 0,

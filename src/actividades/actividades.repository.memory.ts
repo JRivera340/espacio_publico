@@ -26,6 +26,7 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
       lng: data.lng,
       barrio: data.barrio,
       photos: [...(data.photos ?? [])],
+      publishedPhotos: [],
       results: data.results,
       incautacionLicores: data.incautacionLicores ?? 0,
       incautacionArmasBlancas: data.incautacionArmasBlancas ?? 0,
@@ -97,7 +98,9 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     fila.validatedAt = ahora;
     fila.validationNotes = notes ?? null;
     fila.publishedAt = ahora;
-    if (Array.isArray(selectedPhotos)) fila.photos = selectedPhotos;
+    // La seleccion del validador decide que se publica, no que sobrevive:
+    // "photos" queda intacto como evidencia completa del operativo.
+    if (Array.isArray(selectedPhotos)) fila.publishedPhotos = selectedPhotos;
     fila.updatedAt = ahora;
     return this.clonar(fila);
   }
@@ -275,6 +278,7 @@ export class InMemoryActividadesRepository implements ActividadesRepository {
     return {
       ...f,
       photos: [...f.photos],
+      publishedPhotos: [...f.publishedPhotos],
       entidadesAcompanantes: [...f.entidadesAcompanantes],
       gestoresInvolucradosIds: [...f.gestoresInvolucradosIds],
       dynamicAnswers: f.dynamicAnswers ? { ...f.dynamicAnswers } : f.dynamicAnswers,
