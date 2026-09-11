@@ -136,4 +136,11 @@ export const activityService = {
     );
     return data;
   },
+
+  // GESTOR: paz y salvo en PDF de un periodo propio.
+  async descargarPazYSalvo(params: { desde: string; hasta: string; nombreGestor: string }): Promise<Blob> {
+    const query = new URLSearchParams(params).toString();
+    const { data } = await api.get(`/actividades/mine/paz-y-salvo?${query}`, { responseType: 'blob' });
+    return data as Blob;
+  },
 };
