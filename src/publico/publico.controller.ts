@@ -12,8 +12,10 @@ import { parseNonNegativeInt } from '../actividades/actividades.controller';
 // anonima. Con pocas actividades no se nota, pero revienta apenas entren los
 // historicos del hub. DEFAULT_LIMIT aplica cuando el cliente no manda limit;
 // MAX_LIMIT evita que un limit alto pedido a proposito logre lo mismo.
+// El mapa publico (PublicMapPage) pide limit: 500 para traer todos los
+// marcadores; el tope debe cubrir ese consumidor sin truncarlo en silencio.
 const DEFAULT_LIMIT = 25;
-const MAX_LIMIT = 100;
+const MAX_LIMIT = 500;
 
 export function parseFilters(query: Record<string, any>): ListFilters {
   const filters: ListFilters = {};

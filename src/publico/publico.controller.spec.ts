@@ -14,7 +14,7 @@ describe('parseFilters (publico)', () => {
 
   it('recorta un limit que pide mas del tope maximo', () => {
     const filters = parseFilters({ limit: '9999' });
-    expect(filters.limit).toBe(100);
+    expect(filters.limit).toBe(500);
   });
 
   it('rechaza limit no numerico', () => {
