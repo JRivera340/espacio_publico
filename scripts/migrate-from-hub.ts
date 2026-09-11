@@ -5,7 +5,11 @@ import { Client } from 'pg';
 import { DataSource } from 'typeorm';
 import { getEnv } from '../src/config/env';
 import { ActividadEntity } from '../src/actividades/entities/actividad.entity';
-import { HubActivityRow, mapHubRowToActividad } from './migrate-from-hub.lib';
+import {
+  HubActivityRow,
+  mapHubRowToActividad,
+  omitirPublishedPhotosParaReconciliacion,
+} from './migrate-from-hub.lib';
 
 // Migracion/reconciliacion RE-CORRIBLE desde el hub (gov-espacio-publico)
 // hacia la base propia de espacio publico. Sigue el mismo patron probado que
@@ -29,6 +33,29 @@ import { HubActivityRow, mapHubRowToActividad } from './migrate-from-hub.lib';
 // Lee del hub en SOLO LECTURA. Escribe unicamente en la base de espacio
 // publico. No modifica ni borra nada en el hub. Upsert por id — correr de
 // nuevo trae solo lo nuevo/cambiado, sin duplicar ni pisar nada por error.
+//
+// CASO ESPECIAL — publishedPhotos tiene DOS caminos distintos a proposito:
+// esa columna es un subconjunto de "photos" que un validador curo a mano al
+// aprobar una actividad (ver comentario en actividad.entity.ts). Un
+// Repository.upsert() de TypeORM sobrescribe TODAS las columnas del conflicto
+// por default, asi que si este script se corre dos veces (reconciliacion:
+// trae actividades nuevas del hub sin tocar las que ya migraron) recalcularia
+// publishedPhotos desde cero para cada fila ya existente, pisando en silencio
+// cualquier curaduria que un validador haya hecho en este modulo despues de
+// la primera corrida — republicando fotos que alguien eligio retirar. Por
+// eso:
+//   - Fila NUEVA (primer insert, no existe aun en destino): se incluye
+//     publishedPhotos con la regla de backfill de mapHubRowToActividad.
+//   - Fila que YA EXISTE en destino (reconciliacion): se omite
+//     publishedPhotos del payload antes del upsert, para que TypeORM no la
+//     incluya en el DO UPDATE SET y el valor ya curado en destino quede
+//     intacto.
+// TypeORM 0.3.x no tiene una opcion en Repository#upsert para excluir una
+// columna puntual del UPDATE SET (UpsertOptions solo trae conflictPaths,
+// skipUpdateIfNoValuesChanged, upsertType, returning, indexPredicate) — la
+// unica forma de lograrlo es que la propiedad este ausente del objeto que se
+// pasa a upsert(), por eso se resuelve consultando primero que ids ya existen
+// y separando el lote en dos llamadas a upsert().
 //
 // Variables esperadas en .env.migration (credenciales de SOLO LECTURA del
 // hub, nunca commiteadas):
@@ -119,6 +146,22 @@ async function migrate() {
 
   const actividadesRepo = dataSource.getRepository(ActividadEntity);
 
+  // Ids que YA existen en destino, consultados una sola vez antes del lote —
+  // determina que fila toma el camino de "primer insert" (publishedPhotos con
+  // backfill) y cual el de "reconciliacion" (publishedPhotos preservado). Ver
+  // comentario de cabecera.
+  const existingIds = new Set<string>();
+  if (rows.length > 0) {
+    const idsExistentes = await dataSource.query<{ id: string }[]>(
+      'SELECT id FROM actividades WHERE id = ANY($1::uuid[])',
+      [rows.map((r) => r.id)],
+    );
+    for (const fila of idsExistentes) {
+      existingIds.add(fila.id);
+    }
+  }
+  console.log(`[MIGRACION] ${existingIds.size} actividades ya existian en destino (reconciliacion), ${rows.length - existingIds.size} son primer insert.`);
+
   // Idempotencia POR REGISTRO (upsert por id) — correr de nuevo retoma sin
   // duplicar ni requerir limpiar nada primero.
   const BATCH_SIZE = 25;
@@ -126,11 +169,27 @@ async function migrate() {
 
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const lote = rows.slice(i, i + BATCH_SIZE);
+    const nuevas: any[] = [];
+    const existentes: any[] = [];
     for (const row of lote) {
       const gestoresInvolucradosIds = gestoresPorActividad.get(row.id) || [];
       const actividad = mapHubRowToActividad(row, gestoresInvolucradosIds);
-      await actividadesRepo.upsert(actividad as any, ['id']);
+      if (existingIds.has(row.id)) {
+        existentes.push(omitirPublishedPhotosParaReconciliacion(actividad));
+      } else {
+        nuevas.push(actividad);
+      }
       migradas++;
+    }
+    // Dos llamadas separadas a proposito: TypeORM calcula que columnas van en
+    // el DO UPDATE SET mirando todo el arreglo de entidades de ESA llamada,
+    // asi que mezclar en un solo upsert() filas con y sin publishedPhotos
+    // haria que la presencia en una fila arrastre la columna al SET de todas.
+    if (nuevas.length > 0) {
+      await actividadesRepo.upsert(nuevas, ['id']);
+    }
+    if (existentes.length > 0) {
+      await actividadesRepo.upsert(existentes, ['id']);
     }
     console.log(`[MIGRACION] [progreso] actividades: ${Math.min(i + BATCH_SIZE, rows.length)}/${rows.length}`);
   }

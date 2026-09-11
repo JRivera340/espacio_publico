@@ -6,6 +6,7 @@ import {
   derivarPublishedPhotos,
   HubActivityRow,
   mapHubRowToActividad,
+  omitirPublishedPhotosParaReconciliacion,
 } from './migrate-from-hub.lib';
 
 function filaBase(overrides: Partial<HubActivityRow> = {}): HubActivityRow {
@@ -109,5 +110,32 @@ describe('mapHubRowToActividad', () => {
 
     const borrador = mapHubRowToActividad(filaBase({ status: ActividadStatus.BORRADOR, photos: ['x.jpg'] }), []);
     expect(borrador.publishedPhotos).toEqual([]);
+  });
+});
+
+describe('omitirPublishedPhotosParaReconciliacion', () => {
+  it('quita publishedPhotos del payload sin tocar el resto de campos', () => {
+    const actividad = mapHubRowToActividad(
+      filaBase({ status: ActividadStatus.PUBLICADA, photos: ['a.jpg', 'b.jpg'] }),
+      ['g1'],
+    );
+    const payload = omitirPublishedPhotosParaReconciliacion(actividad);
+
+    expect(payload).not.toHaveProperty('publishedPhotos');
+    expect((payload as any).photos).toEqual(['a.jpg', 'b.jpg']);
+    expect(payload.id).toBe(actividad.id);
+    expect(payload.status).toBe(actividad.status);
+    expect(payload.gestoresInvolucradosIds).toEqual(['g1']);
+  });
+
+  it('no muta el objeto original', () => {
+    const actividad = mapHubRowToActividad(
+      filaBase({ status: ActividadStatus.APROBADA, photos: ['a.jpg'] }),
+      [],
+    );
+    omitirPublishedPhotosParaReconciliacion(actividad);
+
+    expect(actividad).toHaveProperty('publishedPhotos');
+    expect(actividad.publishedPhotos).toEqual(['a.jpg']);
   });
 });

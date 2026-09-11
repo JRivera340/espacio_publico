@@ -104,3 +104,17 @@ export function mapHubRowToActividad(row: HubActivityRow, gestoresInvolucradosId
     updatedAt: row.updatedAt,
   };
 }
+
+export type ActividadUpsertPayload = ReturnType<typeof mapHubRowToActividad>;
+
+// Usado SOLO para filas que ya existen en destino (reconciliacion, no primer
+// insert): quita publishedPhotos del payload para que TypeORM.upsert() no lo
+// incluya en el DO UPDATE SET y asi no pise una curaduria manual que un
+// validador ya haya hecho en el modulo nuevo. Ver comentario de cabecera en
+// migrate-from-hub.ts para el porque completo.
+export function omitirPublishedPhotosParaReconciliacion(
+  actividad: ActividadUpsertPayload,
+): Omit<ActividadUpsertPayload, 'publishedPhotos'> {
+  const { publishedPhotos: _publishedPhotos, ...resto } = actividad;
+  return resto;
+}
