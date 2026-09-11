@@ -15,6 +15,7 @@
     "token:test": "ts-node -r tsconfig-paths/register scripts/mint-test-token.ts",
     "usuarios:hub": "ts-node -r tsconfig-paths/register scripts/crear-usuarios-hub.ts",
     "migrate:legacy": "ts-node -r tsconfig-paths/register scripts/migrate-from-legacy.ts",
+    "migrate:hub": "ts-node -r tsconfig-paths/register scripts/migrate-from-hub.ts",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d src/config/data-source.ts",
     "migration:generate": "npm run typeorm -- migration:generate",
     "migration:run": "npm run typeorm -- migration:run",
