@@ -74,6 +74,24 @@ export class ActividadesController {
     return this.service.misEstadisticas(req.user.userId, parseFilters(query));
   }
 
+  @Get('mine/paz-y-salvo')
+  @Roles(Role.GESTOR_ESPACIO_PUBLICO)
+  async pazYSalvo(@Req() req: AuthedRequest, @Query() query: Record<string, any>, @Res() res: Response) {
+    const desde = typeof query.desde === 'string' ? query.desde : '';
+    const hasta = typeof query.hasta === 'string' ? query.hasta : '';
+    if (!desde || !hasta) {
+      throw new BadRequestException('desde y hasta son obligatorios');
+    }
+    const nombreGestor = typeof query.nombreGestor === 'string' && query.nombreGestor.trim()
+      ? query.nombreGestor.trim()
+      : req.user.email;
+
+    const pdf = await this.service.generarPazYSalvo(req.user.userId, nombreGestor, desde, hasta);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="paz-y-salvo-${desde}-a-${hasta}.pdf"`);
+    res.send(pdf);
+  }
+
   @Get('pending')
   @Roles(Role.VALIDADOR_ESPACIO_PUBLICO, Role.ADMIN)
   listarPendientes(@Query() query: Record<string, any>) {

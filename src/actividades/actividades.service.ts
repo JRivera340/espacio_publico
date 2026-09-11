@@ -4,6 +4,7 @@ import type { ActividadesRepository } from './actividades.repository';
 import { CreateActividadInput, UpdateActividadInput, ListFilters } from './actividades.types';
 import { Role } from '../common/enums/role.enum';
 import { ProgramacionService } from '../programacion/programacion.service';
+import { ReporteService } from '../reporte/reporte.service';
 
 @Injectable()
 export class ActividadesService {
@@ -13,6 +14,7 @@ export class ActividadesService {
     @Inject(ACTIVIDADES_REPOSITORY)
     private readonly repo: ActividadesRepository,
     private readonly programacionService: ProgramacionService,
+    private readonly reporteService: ReporteService,
   ) {}
 
   crear(createdByUserId: string, dto: CreateActividadInput) {
@@ -111,5 +113,15 @@ export class ActividadesService {
 
   estadisticasBarrios(filters?: ListFilters) {
     return this.repo.getBarriosStats(filters);
+  }
+
+  // El propio gestor pide su documento sobre sus propios datos - nunca el id
+  // de otro gestor por parametro, mismo criterio que listarMias.
+  async generarPazYSalvo(userId: string, nombreGestor: string, desde: string, hasta: string): Promise<Buffer> {
+    const [actividades, programacion] = await Promise.all([
+      this.repo.listMine(userId, { desde, hasta }),
+      this.programacionService.listarMias(userId, { desde, hasta }),
+    ]);
+    return this.reporteService.generarPazYSalvoPdf(actividades.data, programacion.data, { nombreGestor, desde, hasta });
   }
 }

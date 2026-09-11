@@ -3,10 +3,15 @@ import { ActividadesService } from './actividades.service';
 import { InMemoryActividadesRepository } from './actividades.repository.memory';
 import { ActividadStatus } from './enums/actividad-status.enum';
 import { ProgramacionService } from '../programacion/programacion.service';
+import { ReporteService } from '../reporte/reporte.service';
 import type { ActividadesRepository } from './actividades.repository';
 
 function armarProgramacionMock() {
   return { completarCoincidentes: jest.fn().mockResolvedValue(undefined) } as unknown as ProgramacionService;
+}
+
+function armarReporteMock() {
+  return { generarPazYSalvoPdf: jest.fn().mockResolvedValue(Buffer.from('%PDF-fake')) } as unknown as ReporteService;
 }
 
 const GESTOR = '00000000-0000-0000-0000-000000000001';
@@ -30,7 +35,7 @@ describe('ActividadesService', () => {
 
   beforeEach(() => {
     repo = new InMemoryActividadesRepository();
-    service = new ActividadesService(repo, armarProgramacionMock());
+    service = new ActividadesService(repo, armarProgramacionMock(), armarReporteMock());
   });
 
   it('recorre el ciclo completo hasta publicar', async () => {
@@ -140,7 +145,7 @@ describe('ActividadesService.enviar — autocompletado de programacion', () => {
     const programacion = {
       completarCoincidentes: jest.fn().mockResolvedValue(undefined),
     } as unknown as ProgramacionService;
-    const service = new ActividadesService(repo, programacion);
+    const service = new ActividadesService(repo, programacion, armarReporteMock());
     return { service, repo, programacion, actividadEnviada };
   }
 
@@ -163,5 +168,25 @@ describe('ActividadesService.enviar — autocompletado de programacion', () => {
 
     await expect(service.enviar('actividad-1', 'gestor-1', 'GESTOR_ESPACIO_PUBLICO')).resolves.toBeDefined();
     expect(repo.send).toHaveBeenCalled();
+  });
+});
+
+describe('ActividadesService.generarPazYSalvo', () => {
+  it('pide sus propias actividades y su propia programacion en el rango, y arma el PDF', async () => {
+    const repo = { listMine: jest.fn().mockResolvedValue({ data: [{ id: 'a1' }], total: 1 }) } as any;
+    const programacion = { listarMias: jest.fn().mockResolvedValue({ data: [{ id: 'p1' }], total: 1 }) } as any;
+    const reporte = { generarPazYSalvoPdf: jest.fn().mockResolvedValue(Buffer.from('%PDF-fake')) } as unknown as ReporteService;
+    const service = new ActividadesService(repo, programacion, reporte);
+
+    const pdf = await service.generarPazYSalvo('gestor-1', 'Rosa Diaz', '2026-09-01', '2026-09-30');
+
+    expect(repo.listMine).toHaveBeenCalledWith('gestor-1', { desde: '2026-09-01', hasta: '2026-09-30' });
+    expect(programacion.listarMias).toHaveBeenCalledWith('gestor-1', { desde: '2026-09-01', hasta: '2026-09-30' });
+    expect(reporte.generarPazYSalvoPdf).toHaveBeenCalledWith(
+      [{ id: 'a1' }],
+      [{ id: 'p1' }],
+      { nombreGestor: 'Rosa Diaz', desde: '2026-09-01', hasta: '2026-09-30' },
+    );
+    expect(pdf).toEqual(Buffer.from('%PDF-fake'));
   });
 });
