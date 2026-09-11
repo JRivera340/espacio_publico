@@ -47,6 +47,16 @@ describe('PublicoService', () => {
     expect(item).not.toHaveProperty('results');
   });
 
+  it('muestra publishedPhotos, no el set completo de photos', async () => {
+    const a = await actividades.crear(GESTOR, {
+      ...base,
+      photos: ['operativo-1.jpg', 'operativo-2.jpg', 'operativo-3.jpg'],
+    });
+    await actividades.aprobar(a.id, VALIDADOR, undefined, ['operativo-2.jpg']);
+    const [item] = (await publico.listar()).data;
+    expect(item.photos).toEqual(['operativo-2.jpg']);
+  });
+
   it('publica solo las cifras saneadas de dynamicAnswers', async () => {
     const a = await actividades.crear(GESTOR, {
       ...base,

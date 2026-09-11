@@ -40,7 +40,9 @@ export class PublicoService {
       barrio: a.barrio,
       subtipo: a.operativoSubtipo,
       codigo: codigoVisible(a.categorySeq),
-      photos: [...(a.photos ?? [])],
+      // El visor publico solo muestra lo que el validador eligio publicar,
+      // no el set completo de evidencia del operativo.
+      photos: [...(a.publishedPhotos ?? [])],
       cifras: sanitizarDatosPublicos(a.operativoSubtipo, a.dynamicAnswers),
     };
   }
