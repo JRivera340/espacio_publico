@@ -95,4 +95,14 @@ Un chequeo que paso tambien se anota: es lo que dice que se probo y no que se ol
 
 | Chequeo | Origen | Resultado |
 |---|---|---|
-| _pendiente_ | | |
+| Circuito 1 — gestor entra por handoff, ve su panel, cuenta de actividades coincide con lo sembrado (1 en validacion, 4 publicadas, 1 rechazada) | navegador (cuentas reales gestoreptest/validadoreptest) | verde |
+| Circuito 3 — gestor abre una actividad rechazada y ve la nota completa del validador | navegador | verde |
+| Circuito 4 — validador aprueba desmarcando una foto de la seleccion, la actividad pasa a publicada | navegador | verde |
+| Cierre real del Hallazgo 2 — tras aprobar con 2 de 3 fotos marcadas, `GET /publico/actividades/:id` devuelve solo las 2 elegidas (`photos` interno conserva las 3) | automatico (curl sobre respuesta cruda) | verde |
+| Circuito 6 — validador descarga el informe en Excel, el archivo llega con contenido (52KB) | navegador | verde |
+| Aislamiento entre gestores (listado propio, detalle ajeno 403, listado de ids, rutas de otro rol) | automatico (`npm run qa:verificar` via `railway run`) | verde, 6 chequeos |
+| Nada personal en el visor publico (grep de las carnadas ZZTEST sobre los 3 endpoints publicos) | automatico | verde |
+| Zona horaria en filtro por dia (2026-09-01 y 2026-09-02, la actividad sembrada cerca de medianoche Bogota) | automatico | verde, panel/visor/informe coinciden |
+| Token no aparece en la URL tras el handoff, en ninguno de los dos roles | navegador | verde |
+
+Pendiente (no automatizable, no lo puedo hacer yo): Circuito 2 (validador rechaza con nota — el mecanismo esta probado indirectamente porque la fila RECHAZADA sembrada pasa por ese mismo flujo, pero falta el recorrido real desde ENVIADA), Circuito 7 (panel de administrador, necesita cuenta ADMIN), sesion vencida, backend caido, formulario largo en pantalla chica, y la prueba con funcionarios reales — Task 4 del plan.
