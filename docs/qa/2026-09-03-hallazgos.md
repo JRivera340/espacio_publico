@@ -23,10 +23,11 @@ Inventario de la base del modulo antes de sembrar (`npm run qa:inventario`):
 
 | Que | Cuanto |
 |---|---|
-| Actividades en total | _pendiente_ |
-| Por estado | _pendiente_ |
-| Por gestor | _pendiente_ |
-| Items de programacion | _pendiente_ |
+| Actividades en total | 28 |
+| Por estado | BORRADOR 6, ENVIADA 8, RECHAZADA 6, PUBLICADA 8 |
+| Por gestor | 1fe2ff87-fa9f-404c-a0fa-b95d51f81ea0: 14 (2026-09-01); 00000000-0000-0000-0000-000000000001: 14 (2026-08-28) |
+| Items de programacion | 2 |
+| Con marca [QA-PLAN4] | 0 — las 28 son de siembras/verificaciones manuales previas, ninguna trae la marca que borra seed-qa |
 
 Se completa con la salida del comando y no se borra nada de lo que no sembro un script
 hasta haberlo mirado.
@@ -37,7 +38,7 @@ hasta haberlo mirado.
 
 - **Severidad:** IMPORTANTE
 - **Origen:** lectura (`src/publico/publico.controller.ts:9-15`)
-- **Estado:** abierto
+- **Estado:** cerrado - 2026-09-11 - `parseFilters` del visor publico ahora parsea limit/offset con tope 100 y default 25; cifras sigue forzando limit undefined
 
 **Que se hizo:** se leyo `parseFilters` del controlador publico y se comparo con el del
 controlador autenticado (`src/actividades/actividades.controller.ts:36-49`).

@@ -1,4 +1,5 @@
 import { PublicoService } from './publico.service';
+import { parseFilters } from './publico.controller';
 import { ActividadesService } from '../actividades/actividades.service';
 import { InMemoryActividadesRepository } from '../actividades/actividades.repository.memory';
 import { ProgramacionService } from '../programacion/programacion.service';
@@ -65,5 +66,38 @@ describe('PublicoService', () => {
     await actividades.aprobar(a.id, VALIDADOR);
     const [item] = (await publico.listar()).data;
     expect(item.cifras).toEqual({ cambuches: 3 });
+  });
+
+  it('respeta limit: pedir 1 fila devuelve exactamente 1 aunque haya mas publicadas', async () => {
+    for (let i = 0; i < 3; i++) {
+      const a = await actividades.crear(GESTOR, base);
+      await actividades.aprobar(a.id, VALIDADOR);
+    }
+    const listado = await publico.listar({ limit: 1 });
+    expect(listado.data).toHaveLength(1);
+    expect(listado.total).toBe(3);
+  });
+
+  it('sin limit en la query, el tope por defecto del controlador evita traer todo', async () => {
+    for (let i = 0; i < 30; i++) {
+      const a = await actividades.crear(GESTOR, base);
+      await actividades.aprobar(a.id, VALIDADOR);
+    }
+    const listado = await publico.listar(parseFilters({}));
+    expect(listado.data).toHaveLength(25);
+    expect(listado.total).toBe(30);
+  });
+
+  it('cifras no se limita: suma sobre todas las publicadas aunque llegue un limit', async () => {
+    for (let i = 0; i < 3; i++) {
+      const a = await actividades.crear(GESTOR, {
+        ...base,
+        dynamicAnswers: { cambuches: 1 },
+      });
+      await actividades.aprobar(a.id, VALIDADOR);
+    }
+    const cifras = await publico.cifras({ limit: 1, offset: 0 });
+    expect(cifras.total).toBe(3);
+    expect(cifras.cifras).toEqual({ cambuches: 3 });
   });
 });

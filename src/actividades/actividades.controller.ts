@@ -22,7 +22,7 @@ type AuthedRequest = Request & {
 // undefined (se ignora); cualquier otro valor que no sea un entero >= 0 es un
 // 400 legible en vez de dejar que Number(...) produzca NaN o un negativo que
 // termine en un LIMIT/OFFSET invalido que Postgres rechaza con un 500 opaco.
-function parseNonNegativeInt(raw: any, nombreParametro: string): number | undefined {
+export function parseNonNegativeInt(raw: any, nombreParametro: string): number | undefined {
   if (raw === undefined || raw === null || raw === '') return undefined;
   const valor = Number(raw);
   if (!Number.isInteger(valor) || valor < 0) {

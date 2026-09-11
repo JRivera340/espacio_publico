@@ -3,14 +3,27 @@ import { Public } from '../auth/decorators/public.decorator';
 import { PublicoService } from './publico.service';
 import { ListFilters } from '../actividades/actividades.types';
 import { UUID_REGEX } from '../users-proxy/users-proxy.controller';
+import { parseNonNegativeInt } from '../actividades/actividades.controller';
 
 // Endpoints sin autenticacion: alimentan el visor publico. Todo lo que salga
 // de aca es legible por cualquiera en internet.
-function parseFilters(query: Record<string, any>): ListFilters {
+
+// Sin tope, la portada publica trae la tabla completa en cada visita
+// anonima. Con pocas actividades no se nota, pero revienta apenas entren los
+// historicos del hub. DEFAULT_LIMIT aplica cuando el cliente no manda limit;
+// MAX_LIMIT evita que un limit alto pedido a proposito logre lo mismo.
+const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 100;
+
+export function parseFilters(query: Record<string, any>): ListFilters {
   const filters: ListFilters = {};
   if (query.desde) filters.desde = query.desde;
   if (query.hasta) filters.hasta = query.hasta;
   if (query.barrio) filters.barrio = query.barrio;
+  const limit = parseNonNegativeInt(query.limit, 'limit');
+  filters.limit = limit !== undefined ? Math.min(limit, MAX_LIMIT) : DEFAULT_LIMIT;
+  const offset = parseNonNegativeInt(query.offset, 'offset');
+  if (offset !== undefined) filters.offset = offset;
   return filters;
 }
 
