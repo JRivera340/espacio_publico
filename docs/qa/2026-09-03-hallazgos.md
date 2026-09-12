@@ -104,5 +104,10 @@ Un chequeo que paso tambien se anota: es lo que dice que se probo y no que se ol
 | Nada personal en el visor publico (grep de las carnadas ZZTEST sobre los 3 endpoints publicos) | automatico | verde |
 | Zona horaria en filtro por dia (2026-09-01 y 2026-09-02, la actividad sembrada cerca de medianoche Bogota) | automatico | verde, panel/visor/informe coinciden |
 | Token no aparece en la URL tras el handoff, en ninguno de los dos roles | navegador | verde |
+| Formulario de registro en pantalla chica (375x667) — se puede recorrer entero y "Finalizar registro" esta presente y alcanzable | navegador, viewport movil | verde |
+| Listado publico respeta `limit`/`offset` con tope 500 tras el fix del Hallazgo 1 (el mapa publico pide 500 sin truncarse) | automatico (curl en produccion) | verde |
+| Sesion vencida muestra aviso claro ("Tu sesion vencio...") y redirige al login, no deja una interfaz que parece funcionar | lectura (`App.tsx:108-111`) + `App.test.tsx` existente | verde |
+| Un fallo de backend se traduce a mensaje de error visible (`mensajeDeError`), nunca a una pantalla vacia silenciosa — patron adoptado en 20 archivos del frontend | lectura | verde |
+| Circuito 2 — validador rechaza una actividad ENVIADA con nota, pasa a "Validadas por mi" | navegador | verde |
 
-Pendiente (no automatizable, no lo puedo hacer yo): Circuito 2 (validador rechaza con nota — el mecanismo esta probado indirectamente porque la fila RECHAZADA sembrada pasa por ese mismo flujo, pero falta el recorrido real desde ENVIADA), Circuito 7 (panel de administrador, necesita cuenta ADMIN), sesion vencida, backend caido, formulario largo en pantalla chica, y la prueba con funcionarios reales — Task 4 del plan.
+Pendiente (no lo puedo hacer yo): Circuito 7 (panel de administrador, necesita cuenta ADMIN, no tengo una de prueba), y la prueba con funcionarios reales — Task 4 del plan, la unica que de verdad decide si se aprueba.

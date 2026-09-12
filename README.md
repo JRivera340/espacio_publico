@@ -104,6 +104,35 @@ El seed es idempotente: antes de insertar borra solo las filas que el propio
 seed crea (`createdByUserId` = gestor de prueba), nunca toca datos ajenos ni
 trunca la tabla.
 
+### Control de calidad — `seed:qa`, `qa:inventario`, `qa:verificar`
+
+Tres scripts para el control de calidad previo a la migracion. No sustituyen el
+recorrido en el navegador (`docs/qa/guion-circuitos.md`): cubren solo lo que se
+puede verificar sin pantalla.
+
+```bash
+npm run qa:inventario          # solo lee: cuenta que hay en la base, por estado y por gestor
+npm run seed:qa                # siembra el terreno de prueba (destructivo y estrecho)
+npm run qa:verificar           # aislamiento, fuga de datos, listado sin limite, zona horaria
+```
+
+`seed:qa` siembra **pocas filas elegidas**, no volumen: cada una existe para que
+un chequeo concreto pueda fallar (dos gestores distintos, una actividad a las
+23:40 hora Bogota, una con coordenada fuera del poligono, una publicada sin
+fotos). Todo el texto libre lleva nombres, cedulas y correos **inventados** con
+el prefijo `ZZTEST`, que son la carnada que `qa:verificar` busca con `grep`
+sobre la respuesta cruda de los endpoints publicos.
+
+Pasa por la misma guarda que `seed`: contra una base que no sea local aborta sin
+`--force`. El borrado es estrecho — solo las filas que el propio script escribe
+(las que llevan la marca `[QA-PLAN4]`) y todo lo del gestor B de prueba. **No
+toca lo que sembro `seed.ts`** aunque comparta el `createdByUserId`.
+
+`qa:verificar` apunta al backend local por defecto; con `QA_API_URL` se corre
+contra el desplegado. Firma sus propios tokens con `JWT_SECRET`, igual que
+`token:test`. Sale con codigo distinto de cero si encuentra un hallazgo
+bloqueante.
+
 ## Correr los tests
 
 ```bash
