@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { SurveyQuestion } from '../services/survey.service';
 import { campoVisible, preguntaPorNombre } from '../pages/gestor/lib/activityForm';
 import { PhotosUpload } from './PhotosUpload';
+import { MultiSelectCombobox } from './MultiSelectCombobox';
 
 interface Props {
   /** Preguntas ya podadas de las que la pantalla captura con controles fijos. */
@@ -61,35 +62,26 @@ export const DynamicSurveyRenderer: React.FC<Props> = ({
       return objetivo ? values[objetivo.id] : undefined;
     });
 
-  const renderCasillas = (q: SurveyQuestion, opciones: Array<{ value: string; label: string }>) => {
+  const etiquetaDe = (q: SurveyQuestion) => (
+    <>
+      {q.label} {q.required && <span className="text-red-500">*</span>}
+    </>
+  );
+
+  // Combobox desplegable para preguntas de seleccion multiple: mismo
+  // componente que ya usa CreateActivity para entidades y gestores
+  // acompanantes, en vez de la pared de checkboxes que traia antes.
+  const renderCombobox = (q: SurveyQuestion, opciones: Array<{ value: string; label: string }>) => {
     const seleccion: string[] = Array.isArray(values[q.id]) ? values[q.id] : [];
     return (
-      <div className="flex flex-wrap gap-2">
-        {opciones.map((o) => {
-          const marcada = seleccion.includes(o.value);
-          return (
-            <label
-              key={o.value}
-              htmlFor={`${q.id}-${o.value}`}
-              className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg border cursor-pointer ${
-                marcada ? 'bg-primary/10 border-primary text-primary' : 'bg-white border-neutral-200 text-neutral-600'
-              }`}
-            >
-              <input
-                id={`${q.id}-${o.value}`}
-                type="checkbox"
-                disabled={disabled}
-                checked={marcada}
-                onChange={() =>
-                  onChange(q.id, marcada ? seleccion.filter((v) => v !== o.value) : [...seleccion, o.value])
-                }
-                className="w-3.5 h-3.5"
-              />
-              {o.label}
-            </label>
-          );
-        })}
-      </div>
+      <MultiSelectCombobox
+        legend={etiquetaDe(q)}
+        placeholder={q.placeholder || 'Seleccionar...'}
+        options={opciones}
+        selected={seleccion}
+        onChange={(sel) => onChange(q.id, sel)}
+        disabled={disabled}
+      />
     );
   };
 
@@ -180,11 +172,11 @@ export const DynamicSurveyRenderer: React.FC<Props> = ({
           </select>
         );
       }
-      return renderCasillas(q, opciones);
+      return renderCombobox(q, opciones);
     }
 
     if (tipo === 'MULTISELECT' || tipo === 'CHECKBOX') {
-      return renderCasillas(q, q.options || []);
+      return renderCombobox(q, q.options || []);
     }
 
     if (tipo === 'RADIO') {
@@ -257,11 +249,19 @@ export const DynamicSurveyRenderer: React.FC<Props> = ({
     );
   };
 
-  // Los grupos de opciones (radio, casillas) no pueden colgar de un <label
+  // Los grupos de opciones (radio, archivos) no pueden colgar de un <label
   // htmlFor>: no hay un unico control al que apuntar. Van con fieldset/legend.
   const esGrupoDeOpciones = (q: SurveyQuestion) => {
     const tipo = String(q.type).toUpperCase();
-    if (tipo === 'RADIO' || tipo === 'MULTISELECT' || tipo === 'CHECKBOX' || tipo === 'FILE') return true;
+    return tipo === 'RADIO' || tipo === 'FILE';
+  };
+
+  // El combobox de seleccion multiple ya trae su propio fieldset/legend
+  // (MultiSelectCombobox), asi que no se envuelve en otro label ni fieldset
+  // aca: eso duplicaria el texto de la pregunta en pantalla.
+  const esComboboxPropio = (q: SurveyQuestion) => {
+    const tipo = String(q.type).toUpperCase();
+    if (tipo === 'MULTISELECT' || tipo === 'CHECKBOX') return true;
     return tipo === 'ENTITY_SELECT' && Boolean(q.config?.multiple);
   };
 
@@ -290,7 +290,9 @@ export const DynamicSurveyRenderer: React.FC<Props> = ({
 
               return (
                 <div key={q.id} className={`${anchoCompleto ? 'md:col-span-2' : ''} space-y-1.5`}>
-                  {esGrupoDeOpciones(q) ? (
+                  {esComboboxPropio(q) ? (
+                    renderControl(q)
+                  ) : esGrupoDeOpciones(q) ? (
                     <fieldset disabled={disabled} className="space-y-1.5">
                       <legend className="input-label font-semibold">{etiqueta}</legend>
                       {renderControl(q)}

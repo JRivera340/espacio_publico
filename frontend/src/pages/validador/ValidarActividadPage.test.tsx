@@ -110,4 +110,38 @@ describe('ValidarActividadPage', () => {
     renderPantalla();
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
   });
+
+  // Antes se descartaba cualquier respuesta que no fuera numero positivo: texto
+  // y booleanos desaparecian de la pantalla sin dejar rastro.
+  it('muestra respuestas de texto y booleanas del formulario dinamico', async () => {
+    (activityService.getById as any).mockResolvedValue({
+      ...ACTIVIDAD,
+      dynamicAnswers: { comparendos: 0, observacionesAdicionales: 'Zona reincidente', huboReaccion: false },
+    });
+    renderPantalla();
+
+    expect(await screen.findByText('Zona reincidente')).toBeDefined();
+    expect(await screen.findByText('No')).toBeDefined();
+    expect(await screen.findByText('0')).toBeDefined();
+  });
+
+  it('muestra las entidades acompanantes cuando hay', async () => {
+    (activityService.getById as any).mockResolvedValue({
+      ...ACTIVIDAD,
+      entidadesAcompanantes: ['Policia Nacional', 'UAESP'],
+    });
+    renderPantalla();
+
+    expect(await screen.findByText('Policia Nacional, UAESP')).toBeDefined();
+  });
+
+  it('muestra la nota de validacion aunque la actividad todavia espere validacion', async () => {
+    (activityService.getById as any).mockResolvedValue({
+      ...ACTIVIDAD,
+      validationNotes: 'Corregido tras el primer rechazo',
+    });
+    renderPantalla();
+
+    expect(await screen.findByText('Corregido tras el primer rechazo')).toBeDefined();
+  });
 });

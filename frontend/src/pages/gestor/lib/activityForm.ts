@@ -61,10 +61,16 @@ export function esPreguntaDeActa(q: SurveyQuestion): boolean {
 }
 
 // Preguntas que quedan para el formulario dinamico: las que no cubre ningun
-// control fijo de la pantalla.
+// control fijo de la pantalla. Se excluyen tambien los SECTION_HEADER: la
+// encuesta trae titulos de seccion residuales ("3. Fecha y Hora", "4.
+// Ubicacion"...) de cuando se diseno como formulario standalone, y esos
+// titulos duplican los pasos fijos que ya dibuja esta pantalla.
 export function preguntasDinamicas(questions: SurveyQuestion[]): SurveyQuestion[] {
   return questions.filter(
-    (q) => !NOMBRES_CAMPOS_FIJOS.includes(q.name || '') && !esPreguntaDeActa(q),
+    (q) =>
+      !NOMBRES_CAMPOS_FIJOS.includes(q.name || '') &&
+      !esPreguntaDeActa(q) &&
+      String(q.type).toUpperCase() !== 'SECTION_HEADER',
   );
 }
 

@@ -11,7 +11,32 @@ import { resolverActa } from '../../components/lib/activityDetail';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Loading } from '../../components/Loading';
 import { Toast } from '../../components/Toast';
+import { NOMBRES_CAMPOS_FIJOS } from '../gestor/lib/activityForm';
 import type { Actividad } from '../../types';
+
+// Claves de dynamicAnswers que ya se muestran con su propio control fijo en
+// otra parte de la pantalla (fecha, ubicacion, barrio, fotos...) mas las
+// tecnicas que no son una respuesta ('tipo', metadatos de campo). No van en
+// "Otras respuestas" para no repetir lo que ya se ve arriba.
+const CLAVES_EXCLUIDAS_DE_OTRAS_RESPUESTAS = new Set([...NOMBRES_CAMPOS_FIJOS, 'tipo', '__fieldMeta']);
+
+// Etiqueta legible a partir del nombre tecnico de una pregunta: sin esto se ve
+// "personasSensibilizadas" en vez de "Personas sensibilizadas".
+function etiquetaDeClave(clave: string): string {
+  const conEspacios = clave.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+  const minuscula = conEspacios.toLowerCase();
+  return minuscula.charAt(0).toUpperCase() + minuscula.slice(1);
+}
+
+// Valor de una respuesta dinamica en texto legible: booleanos como Si/No,
+// listas separadas por coma, vacio explicito en vez de nada.
+function valorLegible(valor: unknown): string {
+  if (valor === null || valor === undefined || valor === '') return 'Sin responder';
+  if (typeof valor === 'boolean') return valor ? 'Si' : 'No';
+  if (Array.isArray(valor)) return valor.length > 0 ? valor.join(', ') : 'Sin responder';
+  if (typeof valor === 'object') return JSON.stringify(valor);
+  return String(valor);
+}
 
 const EnlaceDeActa = ({ referencia }: { referencia: string }) => {
   const url = useFileUrl(referencia);
@@ -68,8 +93,29 @@ export const ValidarActividadPage = () => {
 
   const cifras = useMemo(() => {
     if (!actividad) return [] as Array<[string, number]>;
-    const valores = cifrasDe(actividad.dynamicAnswers) as Record<string, number | undefined>;
-    return Object.entries(valores).filter((e): e is [string, number] => typeof e[1] === 'number' && e[1] > 0);
+    const valores = cifrasDe(actividad.dynamicAnswers) as Record<string, unknown>;
+    return Object.entries(valores).filter((e): e is [string, number] => typeof e[1] === 'number');
+  }, [actividad]);
+
+  // Respuestas del formulario dinamico que no son cifras (texto, booleanos) y
+  // que no tienen ya su propio control fijo en pantalla.
+  const otrasRespuestas = useMemo(() => {
+    if (!actividad?.dynamicAnswers) return [] as Array<[string, unknown]>;
+    return Object.entries(actividad.dynamicAnswers).filter(
+      ([clave, valor]) => !CLAVES_EXCLUIDAS_DE_OTRAS_RESPUESTAS.has(clave) && typeof valor !== 'number',
+    );
+  }, [actividad]);
+
+  const cifrasHeredadas = useMemo(() => {
+    if (!actividad) return [] as Array<[string, number]>;
+    const posibles: Array<[string, number | null | undefined]> = [
+      ['Personas sensibilizadas', actividad.personasSensibilizadas],
+      ['Personas trasladadas', actividad.personasTransladadas],
+      ['Incautacion de licores', actividad.incautacionLicores],
+      ['Incautacion de armas blancas', actividad.incautacionArmasBlancas],
+      ['Operativos 1801', actividad.num_1801],
+    ];
+    return posibles.filter((e): e is [string, number] => typeof e[1] === 'number' && e[1] > 0);
   }, [actividad]);
 
   const alternarFoto = (foto: string) => {
@@ -163,12 +209,37 @@ export const ValidarActividadPage = () => {
               <p className="card-subtitle">Entidad responsable</p>
               <p className="font-semibold text-neutral-800">{actividad.entidadResponsable || 'Sin registrar'}</p>
             </div>
+            <div>
+              <p className="card-subtitle">Entidades acompanantes</p>
+              <p className="font-semibold text-neutral-800">
+                {actividad.entidadesAcompanantes?.length ? actividad.entidadesAcompanantes.join(', ') : 'Ninguna'}
+              </p>
+            </div>
+            {actividad.isGroupOperativo && (
+              <div>
+                <p className="card-subtitle">Operativo en grupo</p>
+                <p className="font-semibold text-neutral-800">
+                  {actividad.gestoresInvolucradosIds?.length
+                    ? `Si, con ${actividad.gestoresInvolucradosIds.length} gestor(es) mas`
+                    : 'Si'}
+                </p>
+              </div>
+            )}
           </div>
           <div className="mt-5">
             <p className="card-subtitle">Descripcion de lo realizado</p>
             <p className="text-neutral-800 whitespace-pre-wrap">{actividad.results}</p>
           </div>
         </section>
+
+        {actividad.validationNotes && (
+          <section className="card border-l-4 border-amber-400">
+            <div className="card-header">
+              <h2 className="card-title">Nota de validacion</h2>
+            </div>
+            <p className="text-neutral-700 whitespace-pre-wrap">{actividad.validationNotes}</p>
+          </section>
+        )}
 
         {cifras.length > 0 && (
           <section className="card">
@@ -178,8 +249,41 @@ export const ValidarActividadPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {cifras.map(([clave, valor]) => (
                 <div key={clave}>
-                  <p className="card-subtitle">{clave}</p>
+                  <p className="card-subtitle">{etiquetaDeClave(clave)}</p>
                   <p className="text-2xl font-bold text-primary">{valor}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {cifrasHeredadas.length > 0 && (
+          <section className="card">
+            <div className="card-header">
+              <h2 className="card-title">Cifras adicionales</h2>
+              <p className="card-subtitle">Registradas por fuera del formulario dinamico.</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {cifrasHeredadas.map(([etiqueta, valor]) => (
+                <div key={etiqueta}>
+                  <p className="card-subtitle">{etiqueta}</p>
+                  <p className="text-2xl font-bold text-primary">{valor}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {otrasRespuestas.length > 0 && (
+          <section className="card">
+            <div className="card-header">
+              <h2 className="card-title">Otras respuestas del formulario</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {otrasRespuestas.map(([clave, valor]) => (
+                <div key={clave}>
+                  <p className="card-subtitle">{etiquetaDeClave(clave)}</p>
+                  <p className="font-semibold text-neutral-800 whitespace-pre-wrap">{valorLegible(valor)}</p>
                 </div>
               ))}
             </div>
@@ -252,7 +356,27 @@ export const ValidarActividadPage = () => {
               value={nota}
               onChange={(e) => setNota(e.target.value)}
             />
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+          </section>
+        ) : (
+          <section className="card">
+            <p className="text-neutral-600">
+              Esta actividad ya no espera validacion. Su estado actual es{' '}
+              <strong>{actividad.status.toLowerCase()}</strong>.
+            </p>
+          </section>
+        )}
+
+        {/* Espaciador para que la barra flotante no tape el final del contenido. */}
+        <div className="h-24" aria-hidden="true" />
+      </main>
+
+      <div className="fixed bottom-0 left-0 right-0 border-t border-neutral-200 bg-white/95 backdrop-blur-sm shadow-[0_-4px_12px_rgba(0,0,0,0.06)] px-4 py-3 z-20">
+        <div className="page-content flex flex-col sm:flex-row gap-3">
+          <Link to="/validador/dashboard" className="btn-secondary btn-lg justify-center sm:w-auto">
+            Volver
+          </Link>
+          {puedeValidar && (
+            <>
               <button
                 type="button"
                 disabled={guardando}
@@ -269,24 +393,10 @@ export const ValidarActividadPage = () => {
               >
                 Rechazar y devolver
               </button>
-            </div>
-          </section>
-        ) : (
-          <section className="card">
-            <p className="text-neutral-600">
-              Esta actividad ya no espera validacion. Su estado actual es{' '}
-              <strong>{actividad.status.toLowerCase()}</strong>.
-            </p>
-            {actividad.validationNotes && (
-              <p className="mt-3 text-neutral-700 whitespace-pre-wrap">{actividad.validationNotes}</p>
-            )}
-          </section>
-        )}
-
-        <Link to="/validador/dashboard" className="btn-secondary inline-flex">
-          Volver
-        </Link>
-      </main>
+            </>
+          )}
+        </div>
+      </div>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>

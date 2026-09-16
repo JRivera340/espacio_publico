@@ -10,9 +10,10 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { Loading } from '../../components/Loading';
 import { DescargarInforme } from '../../components/DescargarInforme';
 import { StatCard } from '../../components/StatCard';
-import type { Actividad } from '../../types';
+import { filterActividades, barriosUnicos, type DashboardFilters } from '../gestor/lib/dashboardFilters';
+import type { Actividad, ActividadStatus } from '../../types';
 
-type Pestana = 'pendientes' | 'validadas';
+type Pestana = 'pendientes' | 'historial';
 
 export const ValidadorDashboard = () => {
   const [pestana, setPestana] = useState<Pestana>('pendientes');
@@ -21,6 +22,12 @@ export const ValidadorDashboard = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
+
+  const [statusFilter, setStatusFilter] = useState<ActividadStatus | ''>('');
+  const [barrioFilter, setBarrioFilter] = useState('');
+  const [turnoFilter, setTurnoFilter] = useState<DashboardFilters['turno']>('');
+  const [desdeFilter, setDesdeFilter] = useState('');
+  const [hastaFilter, setHastaFilter] = useState('');
 
   useEffect(() => {
     let vigente = true;
@@ -46,7 +53,28 @@ export const ValidadorDashboard = () => {
     };
   }, [intento]);
 
-  const lista = pestana === 'pendientes' ? pendientes : validadas;
+  const listaBase = pestana === 'pendientes' ? pendientes : validadas;
+
+  const lista = filterActividades(listaBase, {
+    status: statusFilter,
+    barrio: barrioFilter,
+    turno: turnoFilter,
+  }).filter((a) => {
+    const fecha = a.dateTime.slice(0, 10);
+    if (desdeFilter && fecha < desdeFilter) return false;
+    if (hastaFilter && fecha > hastaFilter) return false;
+    return true;
+  });
+
+  const barrios = barriosUnicos(listaBase);
+  const hayFiltrosActivos = Boolean(statusFilter || barrioFilter || turnoFilter || desdeFilter || hastaFilter);
+  const limpiarFiltros = () => {
+    setStatusFilter('');
+    setBarrioFilter('');
+    setTurnoFilter('');
+    setDesdeFilter('');
+    setHastaFilter('');
+  };
 
   if (cargando) return <Loading />;
 
@@ -81,16 +109,103 @@ export const ValidadorDashboard = () => {
           </button>
           <button
             type="button"
-            onClick={() => setPestana('validadas')}
-            className={pestana === 'validadas' ? 'btn-success btn-sm' : 'btn-ghost btn-sm'}
+            onClick={() => setPestana('historial')}
+            className={pestana === 'historial' ? 'btn-success btn-sm' : 'btn-ghost btn-sm'}
           >
-            Ya validadas
+            Historial
           </button>
+        </div>
+
+        <div className="filters-container mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-neutral-700">Filtros</h3>
+            {hayFiltrosActivos && (
+              <button type="button" onClick={limpiarFiltros} className="btn-ghost btn-sm text-neutral-500">
+                Limpiar
+              </button>
+            )}
+          </div>
+          <div className="filters-grid">
+            {pestana === 'historial' && (
+              <div className="filter-group">
+                <label className="input-label" htmlFor="filtro-estado">
+                  Estado
+                </label>
+                <select
+                  id="filtro-estado"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as ActividadStatus | '')}
+                  className="select-field"
+                >
+                  <option value="">Todos los estados</option>
+                  <option value="PUBLICADA">Publicadas</option>
+                  <option value="RECHAZADA">Rechazadas</option>
+                </select>
+              </div>
+            )}
+            <div className="filter-group">
+              <label className="input-label" htmlFor="filtro-barrio">
+                Barrio
+              </label>
+              <select
+                id="filtro-barrio"
+                value={barrioFilter}
+                onChange={(e) => setBarrioFilter(e.target.value)}
+                className="select-field"
+              >
+                <option value="">Todos los barrios</option>
+                {barrios.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label className="input-label" htmlFor="filtro-turno">
+                Turno
+              </label>
+              <select
+                id="filtro-turno"
+                value={turnoFilter}
+                onChange={(e) => setTurnoFilter(e.target.value as DashboardFilters['turno'])}
+                className="select-field"
+              >
+                <option value="">Todos los turnos</option>
+                <option value="DIURNO">Diurno</option>
+                <option value="NOCTURNO">Nocturno</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label className="input-label" htmlFor="filtro-desde">
+                Desde
+              </label>
+              <input
+                id="filtro-desde"
+                type="date"
+                className="input-field"
+                value={desdeFilter}
+                onChange={(e) => setDesdeFilter(e.target.value)}
+              />
+            </div>
+            <div className="filter-group">
+              <label className="input-label" htmlFor="filtro-hasta">
+                Hasta
+              </label>
+              <input
+                id="filtro-hasta"
+                type="date"
+                className="input-field"
+                value={hastaFilter}
+                onChange={(e) => setHastaFilter(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">{pestana === 'pendientes' ? 'Esperando validacion' : 'Validadas por mi'}</h2>
+            <h2 className="card-title">{pestana === 'pendientes' ? 'Esperando validacion' : 'Historial'}</h2>
             <p className="card-subtitle">{lista.length} actividades</p>
           </div>
 
@@ -105,12 +220,18 @@ export const ValidadorDashboard = () => {
           ) : lista.length === 0 ? (
             <div className="empty-state">
               <p className="empty-state-title">
-                {pestana === 'pendientes' ? 'No hay actividades esperando validacion' : 'Todavia no validaste ninguna'}
+                {hayFiltrosActivos
+                  ? 'Ningun resultado con estos filtros'
+                  : pestana === 'pendientes'
+                    ? 'No hay actividades esperando validacion'
+                    : 'Todavia no validaste ninguna'}
               </p>
               <p className="empty-state-description">
-                {pestana === 'pendientes'
-                  ? 'Cuando un gestor envie una actividad, aparece aca.'
-                  : 'Las actividades que apruebes o rechaces quedan en esta lista.'}
+                {hayFiltrosActivos
+                  ? 'Proba quitando algun filtro.'
+                  : pestana === 'pendientes'
+                    ? 'Cuando un gestor envie una actividad, aparece aca.'
+                    : 'Las actividades que apruebes o rechaces quedan en esta lista.'}
               </p>
             </div>
           ) : (

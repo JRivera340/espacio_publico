@@ -93,6 +93,15 @@ describe('preguntasDinamicas', () => {
     const porEtiqueta: SurveyQuestion = { id: 'a1', type: 'FILE', name: 'documento', label: 'Acta firmada' };
     expect(preguntasDinamicas([porEtiqueta])).toEqual([]);
   });
+
+  it('deja fuera los titulos de seccion para no repetir los pasos fijos de la pantalla', () => {
+    const preguntas: SurveyQuestion[] = [
+      preguntaCifra,
+      { id: 'h1', type: 'SECTION_HEADER', name: '', label: '3. Fecha y Hora' },
+      { id: 'h2', type: 'section_header', name: '', label: '4. Ubicacion' },
+    ];
+    expect(preguntasDinamicas(preguntas).map((q) => q.id)).toEqual(['q-cifra']);
+  });
 });
 
 describe('faltantesObligatorias', () => {

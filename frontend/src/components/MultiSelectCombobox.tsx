@@ -6,7 +6,7 @@ export interface ComboboxOption {
 }
 
 interface MultiSelectComboboxProps {
-  legend: string;
+  legend: React.ReactNode;
   placeholder: string;
   options: ComboboxOption[];
   selected: string[];
@@ -82,7 +82,7 @@ export const MultiSelectCombobox: React.FC<MultiSelectComboboxProps> = ({
         {abierto && (
           <div
             id={listId}
-            className="mt-2 p-3 max-h-56 overflow-y-auto space-y-1 rounded-lg border border-neutral-200 bg-white shadow-md relative z-10"
+            className="absolute left-0 right-0 top-full mt-2 p-3 max-h-56 overflow-y-auto space-y-1 rounded-lg border border-neutral-200 bg-white shadow-lg z-20"
           >
             {options.length === 0 ? (
               <p className="text-xs text-neutral-500 py-2">{emptyMessage}</p>
