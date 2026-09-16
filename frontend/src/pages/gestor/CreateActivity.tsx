@@ -283,12 +283,12 @@ export const CreateActivity: React.FC = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <div className="page-header-content flex items-center justify-between gap-4">
+        <div className="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="page-title">Registrar actividad</h1>
             <p className="page-subtitle">Espacio publico - operativo {SUBTIPO_DISPLAY}</p>
           </div>
-          <button type="button" className="btn-ghost btn-sm" onClick={() => navigate('/gestor/dashboard')}>
+          <button type="button" className="btn-ghost btn-sm self-start" onClick={() => navigate('/gestor/dashboard')}>
             Volver
           </button>
         </div>

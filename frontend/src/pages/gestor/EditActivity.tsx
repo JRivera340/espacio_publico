@@ -359,12 +359,12 @@ export const EditActivity: React.FC = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <div className="page-header-content flex items-center justify-between gap-4">
+        <div className="page-header-content flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="page-title">Corregir actividad</h1>
             <p className="page-subtitle">Espacio publico - operativo {SUBTIPO_DISPLAY}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">
               Rechazada - corregir y reenviar
             </span>
