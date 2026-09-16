@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resumenDelMes, resumenPorGestor } from './desempenoGestor.lib';
+import { resumenDelMes, resumenPorGestor, actividadesDelGestor } from './desempenoGestor.lib';
 import type { ProgramacionItem } from '../services/programacion.service';
 import type { Actividad } from '../types';
 import type { GestorResumen } from '../services/users.service';
@@ -108,6 +108,33 @@ describe('desempenoGestor.lib', () => {
     expect(resumen[0].porcentajeCumplimiento).toBe(90);
     expect(resumen[1].nombre).toBe('Ana Perez');
     expect(resumen[1].porcentajeCumplimiento).toBe(100);
+  });
+
+  it('actividadesDelGestor da credito al acompanante, no solo al que la creo', () => {
+    const actividades: Actividad[] = [
+      { id: '1', createdByUserId: 'g-2', gestoresInvolucradosIds: ['g-1'] } as Actividad,
+      { id: '2', createdByUserId: 'g-3', gestoresInvolucradosIds: [] } as Actividad,
+    ];
+    expect(actividadesDelGestor(actividades, 'g-1').map((a) => a.id)).toEqual(['1']);
+  });
+
+  it('resumenPorGestor cuenta como registrada la actividad de un companero de equipo', () => {
+    const gestores = [{ id: 'g-1', nombre: 'Ana Perez' }];
+    const actividades: Actividad[] = [
+      { id: '1', dateTime: '2026-09-05T10:00:00.000Z', createdByUserId: 'g-2', gestoresInvolucradosIds: ['g-1'] } as Actividad,
+    ];
+    const resumen = resumenPorGestor([], actividades, new Date(2026, 8, 1), AHORA, gestores);
+    expect(resumen[0].actividadesRegistradasMes).toBe(1);
+  });
+
+  it('distingue tareas compartidas (varios gestores) de individuales', () => {
+    const programacion: ProgramacionItem[] = [
+      { id: '1', fecha: '2026-09-05T10:00:00.000Z', descripcion: 'x', estado: 'PENDIENTE', gestorUserIds: ['g-1', 'g-2'], creadoPorUserId: 'v-1' },
+      { id: '2', fecha: '2026-09-06T10:00:00.000Z', descripcion: 'x', estado: 'PENDIENTE', gestorUserIds: ['g-1'], creadoPorUserId: 'v-1' },
+    ];
+    const resumen = resumenDelMes(programacion, [], new Date(2026, 8, 1), AHORA);
+    expect(resumen.compartidasMes).toBe(1);
+    expect(resumen.individualesMes).toBe(1);
   });
 
   it('resumenDelMes cuenta una tarea con varios gestores para cualquiera de ellos', () => {

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { format, isBefore, startOfDay, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { programacionService, type ProgramacionItem } from '../../services/programacion.service';
+import { usersService, type GestorResumen } from '../../services/users.service';
+import { useAuthStore } from '../../store/authStore';
 import { mensajeDeError } from '../../utils/errorMessage';
 import { mismoDia } from '../../lib/calendar.lib';
 import { MonthCalendar } from '../../components/MonthCalendar';
@@ -15,7 +17,9 @@ const ETIQUETA_ESTADO: Record<string, string> = {
 };
 
 export const CronogramaPage = () => {
+  const idUsuarioActual = useAuthStore((s) => s.user?.id);
   const [items, setItems] = useState<ProgramacionItem[]>([]);
+  const [gestores, setGestores] = useState<GestorResumen[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
@@ -25,11 +29,11 @@ export const CronogramaPage = () => {
   useEffect(() => {
     let vigente = true;
     setCargando(true);
-    programacionService
-      .mias()
-      .then((lista) => {
+    Promise.all([programacionService.mias(), usersService.listarGestores()])
+      .then(([lista, listaGestores]) => {
         if (!vigente) return;
         setItems(lista);
+        setGestores(listaGestores);
         setError(null);
       })
       .catch((err) => {
@@ -44,6 +48,14 @@ export const CronogramaPage = () => {
       vigente = false;
     };
   }, [intento]);
+
+  // Nombres de los companeros con los que se comparte una tarea (todos los
+  // gestorUserIds menos el propio gestor que esta mirando la pantalla): sin
+  // esto la tarea compartida se ve igual que una individual.
+  const companerosDe = (item: ProgramacionItem): string[] =>
+    (item.gestorUserIds ?? [])
+      .filter((id) => id !== idUsuarioActual)
+      .map((id) => gestores.find((g) => g.id === id)?.nombre ?? 'Gestor del area');
 
   // Las vencidas se calculan sobre TODO lo cargado, no solo el mes visible en
   // el calendario: son la alerta mas importante de la pantalla y no pueden
@@ -60,27 +72,35 @@ export const CronogramaPage = () => {
 
   if (cargando) return <Loading />;
 
-  const Fila = ({ item }: { item: ProgramacionItem }) => (
-    <div className="p-4 rounded-2xl border border-neutral-100">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold text-neutral-800">{item.descripcion}</p>
-          <p className="text-sm text-neutral-500">
-            {format(new Date(item.fecha), 'HH:mm', { locale: es })}
-            {item.barrio ? ` - ${item.barrio}` : ''}
-          </p>
+  const Fila = ({ item }: { item: ProgramacionItem }) => {
+    const companeros = companerosDe(item);
+    return (
+      <div className="p-4 rounded-2xl border border-neutral-100">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-semibold text-neutral-800">{item.descripcion}</p>
+            <p className="text-sm text-neutral-500">
+              {format(new Date(item.fecha), 'HH:mm', { locale: es })}
+              {item.barrio ? ` - ${item.barrio}` : ''}
+            </p>
+            {companeros.length > 0 && (
+              <p className="text-xs text-neutral-500 mt-1">
+                Compartida con: {companeros.join(', ')}. Si cualquiera registra el operativo, se cumple para todos.
+              </p>
+            )}
+          </div>
+          <span className="text-xs font-semibold text-neutral-500 shrink-0">
+            {ETIQUETA_ESTADO[item.estado] ?? item.estado}
+          </span>
         </div>
-        <span className="text-xs font-semibold text-neutral-500 shrink-0">
-          {ETIQUETA_ESTADO[item.estado] ?? item.estado}
-        </span>
+        {item.estado === 'PENDIENTE' && (
+          <Link to="/gestor/crear-actividad" className="btn-success btn-sm mt-3 inline-flex">
+            Registrar esta actividad
+          </Link>
+        )}
       </div>
-      {item.estado === 'PENDIENTE' && (
-        <Link to="/gestor/crear-actividad" className="btn-success btn-sm mt-3 inline-flex">
-          Registrar esta actividad
-        </Link>
-      )}
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="page-container">

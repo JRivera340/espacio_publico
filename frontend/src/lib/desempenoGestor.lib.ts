@@ -9,6 +9,21 @@ export interface ResumenDesempeno {
   vencidasMes: number;
   porcentajeCumplimiento: number;
   actividadesRegistradasMes: number;
+  compartidasMes: number;
+  individualesMes: number;
+}
+
+// Actividades que "pertenecen" a un gestor para efectos de desempeno: las que
+// creo el mismo, mas las que registro un companero de equipo estandolo el
+// como acompanante (gestoresInvolucradosIds). El backend ya le da credito de
+// cumplimiento de una tarea compartida al acompanante (autocompletarCoincidentes
+// cruza gestoresInvolucradosIds con gestorUserIds); si este indicador solo
+// mirara createdByUserId, el acompanante veria la tarea marcada CUMPLIDA pero
+// ninguna actividad registrada que lo explique.
+export function actividadesDelGestor(actividades: Actividad[], gestorId: string): Actividad[] {
+  return actividades.filter(
+    (a) => a.createdByUserId === gestorId || (a.gestoresInvolucradosIds ?? []).includes(gestorId),
+  );
 }
 
 function delMismoMes(fechaIso: string, mesRef: Date): boolean {
@@ -37,7 +52,22 @@ export function resumenDelMes(
 
   const actividadesRegistradasMes = actividades.filter((a) => delMismoMes(a.dateTime, mesRef)).length;
 
-  return { programadasMes: delMes.length, cumplidasMes, pendientesMes, vencidasMes, porcentajeCumplimiento, actividadesRegistradasMes };
+  // Compartida: tiene mas de un gestor asignado (equipo). Individual: uno
+  // solo. Sirve para distinguir cuanto de lo que le toca a un gestor depende
+  // de coordinarse con otros.
+  const compartidasMes = delMes.filter((p) => (p.gestorUserIds ?? []).length > 1).length;
+  const individualesMes = delMes.filter((p) => (p.gestorUserIds ?? []).length === 1).length;
+
+  return {
+    programadasMes: delMes.length,
+    cumplidasMes,
+    pendientesMes,
+    vencidasMes,
+    porcentajeCumplimiento,
+    actividadesRegistradasMes,
+    compartidasMes,
+    individualesMes,
+  };
 }
 
 export interface ResumenPorGestor extends ResumenDesempeno {
@@ -59,7 +89,7 @@ export function resumenPorGestor(
     .map((g) => {
       const resumen = resumenDelMes(
         programacion.filter((p) => p.gestorUserIds.includes(g.id)),
-        actividades.filter((a) => a.createdByUserId === g.id),
+        actividadesDelGestor(actividades, g.id),
         mesRef,
         ahora,
       );

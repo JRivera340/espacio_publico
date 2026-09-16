@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { startOfMonth, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MonthCalendar } from './MonthCalendar';
-import { mismoDia } from '../lib/calendar.lib';
-import { resumenDelMes, resumenPorGestor } from '../lib/desempenoGestor.lib';
+import { mismoDia, mesAnterior } from '../lib/calendar.lib';
+import { resumenDelMes, resumenPorGestor, actividadesDelGestor } from '../lib/desempenoGestor.lib';
 import type { ProgramacionItem } from '../services/programacion.service';
 import type { GestorResumen } from '../services/users.service';
 import type { Actividad } from '../types';
@@ -23,12 +23,21 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
 }) => {
   const [mes, setMes] = useState(() => startOfMonth(new Date()));
   const [gestorId, setGestorId] = useState('');
+  const [barrioFiltro, setBarrioFiltro] = useState('');
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | null>(() => new Date());
   const [mostrarSinActividad, setMostrarSinActividad] = useState(false);
 
+  const barrios = useMemo(
+    () => Array.from(new Set(programacion.map((p) => p.barrio).filter((b): b is string => Boolean(b)))).sort(),
+    [programacion],
+  );
+
   const programacionFiltrada = useMemo(
-    () => (gestorId ? programacion.filter((p) => p.gestorUserIds.includes(gestorId)) : programacion),
-    [programacion, gestorId],
+    () =>
+      programacion.filter(
+        (p) => (!gestorId || p.gestorUserIds.includes(gestorId)) && (!barrioFiltro || p.barrio === barrioFiltro),
+      ),
+    [programacion, gestorId, barrioFiltro],
   );
 
   const nombreDeGestor = (id?: string | null) =>
@@ -42,48 +51,91 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
   const resumenIndividual = useMemo(
     () =>
       gestorId
+        ? resumenDelMes(programacionFiltrada, actividadesDelGestor(actividades, gestorId), mes, new Date())
+        : null,
+    [gestorId, programacionFiltrada, actividades, mes],
+  );
+
+  // Cumplimiento del mes anterior para el mismo gestor y el mismo filtro de
+  // barrio: sin esto un 60% no dice si el equipo mejora o empeora mes a mes.
+  const resumenIndividualMesAnterior = useMemo(
+    () =>
+      gestorId
         ? resumenDelMes(
             programacionFiltrada,
-            actividades.filter((a) => a.createdByUserId === gestorId),
-            mes,
+            actividadesDelGestor(actividades, gestorId),
+            mesAnterior(mes),
             new Date(),
           )
         : null,
     [gestorId, programacionFiltrada, actividades, mes],
   );
 
+  // Programacion recortada por barrio (sin el filtro de gestor) para que la
+  // tabla de todo el equipo tambien respete el filtro de barrio.
+  const programacionPorBarrio = useMemo(
+    () => (barrioFiltro ? programacion.filter((p) => p.barrio === barrioFiltro) : programacion),
+    [programacion, barrioFiltro],
+  );
+
   // Separado en dos grupos: la tabla de "todos" con cada gestor del area
   // (pueden ser decenas) se vuelve una pared de ceros ilegible si se listan
   // todos por igual. Los que no tienen nada programado este mes quedan
   // plegados aparte - la tabla principal muestra solo a quien le toco algo.
-  const { equipoConActividad, equipoSinActividad } = useMemo(() => {
-    if (gestorId) return { equipoConActividad: [], equipoSinActividad: [] };
-    const todos = resumenPorGestor(programacion, actividades, mes, new Date(), gestores);
+  const { equipoConActividad, equipoSinActividad, tendenciaPorGestor } = useMemo(() => {
+    if (gestorId) return { equipoConActividad: [], equipoSinActividad: [], tendenciaPorGestor: {} as Record<string, number> };
+    const todos = resumenPorGestor(programacionPorBarrio, actividades, mes, new Date(), gestores);
+    const anterior = resumenPorGestor(programacionPorBarrio, actividades, mesAnterior(mes), new Date(), gestores);
+    const tendencia: Record<string, number> = {};
+    anterior.forEach((f) => {
+      tendencia[f.gestorId] = f.porcentajeCumplimiento;
+    });
     return {
       equipoConActividad: todos.filter((f) => f.programadasMes > 0),
       equipoSinActividad: todos.filter((f) => f.programadasMes === 0),
+      tendenciaPorGestor: tendencia,
     };
-  }, [gestorId, programacion, actividades, mes, gestores]);
+  }, [gestorId, programacionPorBarrio, actividades, mes, gestores]);
 
   return (
     <div className="space-y-6">
-      <div className="max-w-xs">
-        <label className="input-label" htmlFor="filtroGestorCronograma">
-          Gestor
-        </label>
-        <select
-          id="filtroGestorCronograma"
-          className="select-field"
-          value={gestorId}
-          onChange={(e) => setGestorId(e.target.value)}
-        >
-          <option value="">Todos los gestores</option>
-          {gestores.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.nombre}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="max-w-xs w-full">
+          <label className="input-label" htmlFor="filtroGestorCronograma">
+            Gestor
+          </label>
+          <select
+            id="filtroGestorCronograma"
+            className="select-field"
+            value={gestorId}
+            onChange={(e) => setGestorId(e.target.value)}
+          >
+            <option value="">Todos los gestores</option>
+            {gestores.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="max-w-xs w-full">
+          <label className="input-label" htmlFor="filtroBarrioCronograma">
+            Barrio
+          </label>
+          <select
+            id="filtroBarrioCronograma"
+            className="select-field"
+            value={barrioFiltro}
+            onChange={(e) => setBarrioFiltro(e.target.value)}
+          >
+            <option value="">Todos los barrios</option>
+            {barrios.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Calendario y detalle del dia lado a lado en escritorio: elegir un
@@ -141,7 +193,20 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
               </div>
               <div className="card p-3">
                 <p className="card-subtitle">Cumplimiento</p>
-                <p className="text-lg font-bold text-neutral-800">{resumenIndividual.porcentajeCumplimiento}%</p>
+                <p className="text-lg font-bold text-neutral-800">
+                  {resumenIndividual.porcentajeCumplimiento}%
+                  {resumenIndividualMesAnterior && (
+                    <TendenciaBadge actual={resumenIndividual.porcentajeCumplimiento} anterior={resumenIndividualMesAnterior.porcentajeCumplimiento} />
+                  )}
+                </p>
+              </div>
+              <div className="card p-3">
+                <p className="card-subtitle">En equipo</p>
+                <p className="text-lg font-bold text-neutral-800">{resumenIndividual.compartidasMes}</p>
+              </div>
+              <div className="card p-3">
+                <p className="card-subtitle">Individuales</p>
+                <p className="text-lg font-bold text-neutral-800">{resumenIndividual.individualesMes}</p>
               </div>
             </div>
           )}
@@ -157,9 +222,11 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
                 <tr>
                   <th className="table-header-cell">Gestor</th>
                   <th className="table-header-cell">Programadas</th>
+                  <th className="table-header-cell">En equipo</th>
                   <th className="table-header-cell">Cumplidas</th>
                   <th className="table-header-cell">Vencidas</th>
                   <th className="table-header-cell">Cumplimiento</th>
+                  <th className="table-header-cell">Tendencia</th>
                 </tr>
               </thead>
               <tbody className="table-body">
@@ -167,9 +234,13 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
                   <tr key={fila.gestorId} className="table-row">
                     <td className="table-cell font-semibold">{fila.nombre}</td>
                     <td className="table-cell">{fila.programadasMes}</td>
+                    <td className="table-cell">{fila.compartidasMes}</td>
                     <td className="table-cell">{fila.cumplidasMes}</td>
                     <td className="table-cell text-red-600">{fila.vencidasMes}</td>
                     <td className="table-cell font-bold">{fila.porcentajeCumplimiento}%</td>
+                    <td className="table-cell">
+                      <TendenciaBadge actual={fila.porcentajeCumplimiento} anterior={tendenciaPorGestor[fila.gestorId] ?? fila.porcentajeCumplimiento} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -204,5 +275,21 @@ export const EquipoCronogramaPanel: React.FC<EquipoCronogramaPanelProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+// Flecha de tendencia mes a mes: sube, baja o se mantiene igual respecto al
+// mes anterior. Sin datos del mes anterior (base 0, 100 por defecto) no dice
+// nada util, asi que no se resalta como cambio real.
+const TendenciaBadge: React.FC<{ actual: number; anterior: number }> = ({ actual, anterior }) => {
+  const diferencia = actual - anterior;
+  if (diferencia === 0) {
+    return <span className="text-xs text-neutral-400 ml-1.5">= igual</span>;
+  }
+  const sube = diferencia > 0;
+  return (
+    <span className={`text-xs font-semibold ml-1.5 ${sube ? 'text-green-600' : 'text-red-600'}`}>
+      {sube ? '▲' : '▼'} {Math.abs(diferencia)}%
+    </span>
   );
 };

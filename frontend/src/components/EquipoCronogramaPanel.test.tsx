@@ -54,4 +54,29 @@ describe('EquipoCronogramaPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /15 de septiembre/i }));
     expect(screen.getByText(/Ana Perez - LAS CRUCES/)).toBeTruthy();
   });
+
+  it('filtra la tabla de equipo por barrio', () => {
+    conFechaFija('2026-09-01T12:00:00.000Z', () => {
+      render(<EquipoCronogramaPanel programacion={PROGRAMACION} actividades={[]} gestores={GESTORES} />);
+    });
+
+    fireEvent.change(screen.getByLabelText('Barrio'), { target: { value: 'LAS CRUCES' } });
+
+    expect(screen.getByRole('cell', { name: 'Ana Perez' })).toBeTruthy();
+    expect(screen.queryByRole('cell', { name: 'Luis Mora' })).toBeNull();
+  });
+
+  it('muestra la tendencia de cumplimiento respecto al mes anterior', () => {
+    const conMesAnterior: ProgramacionItem[] = [
+      ...PROGRAMACION,
+      { id: '3', fecha: '2026-08-10T15:00:00.000Z', descripcion: 'Mes anterior', barrio: 'LAS CRUCES', estado: 'PENDIENTE', gestorUserIds: ['g-1'], creadoPorUserId: 'v-1' },
+    ];
+    conFechaFija('2026-09-01T12:00:00.000Z', () => {
+      render(<EquipoCronogramaPanel programacion={conMesAnterior} actividades={[]} gestores={GESTORES} />);
+    });
+
+    // Ana: este mes 1 pendiente sin vencer (100% por defecto), mes anterior 1
+    // vencida sin cumplir (0%) -> mejora, se muestra la flecha de subida.
+    expect(screen.getByText('▲ 100%')).toBeTruthy();
+  });
 });
