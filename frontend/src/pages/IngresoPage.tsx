@@ -66,7 +66,7 @@ export const IngresoPage = () => {
       <img
         src="/images/alcaldialocalsantafe-sinfondo.png"
         alt="Alcaldia Local de Santa Fe"
-        className="h-10 w-auto object-contain mb-8"
+        className="h-14 w-auto object-contain mb-8"
       />
 
       <div className="w-full max-w-sm bg-white rounded-[24px] shadow-2xl p-10">

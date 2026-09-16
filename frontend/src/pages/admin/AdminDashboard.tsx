@@ -110,7 +110,7 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      <main className="page-content space-y-6">
+      <main className="page-content-wide space-y-6">
         <div className="nav-tabs mb-2">
           <button type="button" className={vista === 'indicadores' ? 'nav-tab-active' : 'nav-tab'} onClick={() => setVista('indicadores')}>
             Indicadores
@@ -147,46 +147,51 @@ export const AdminDashboard = () => {
               </div>
             ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
               <StatCard icon={BarChart3} tone="primary" label="Total de operativos" value={ritmo.total} />
               <StatCard icon={CalendarClock} tone="amber" label="Ultimos 20 dias" value={ritmo.ultimos20d} />
               <StatCard icon={CalendarCheck2} tone="success" label="Esta semana" value={ritmo.estaSemana} />
               <StatCard icon={ListTodo} tone="neutral" label="Programadas pendientes" value={programadasPendientes} />
             </div>
 
-            <section className="card">
-              <div className="card-header">
-                <h2 className="card-title">Por estado</h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(porEstado).map(([estado, total]) => (
-                  <span key={estado} className="px-3 py-1 rounded-full bg-neutral-100 text-sm font-semibold text-neutral-700">
-                    {estado}: {total}
-                  </span>
-                ))}
-              </div>
-            </section>
+            {/* En escritorio ancho, estado y barrio lado a lado: apilados a
+                todo el ancho dejaban una franja de fondo vacia a los costados
+                de cada card en monitores grandes. */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <section className="card">
+                <div className="card-header">
+                  <h2 className="card-title">Por estado</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(porEstado).map(([estado, total]) => (
+                    <span key={estado} className="px-3 py-1 rounded-full bg-neutral-100 text-sm font-semibold text-neutral-700">
+                      {estado}: {total}
+                    </span>
+                  ))}
+                </div>
+              </section>
 
-            <section className="card">
-              <div className="card-header">
-                <h2 className="card-title">Por barrio</h2>
-                <p className="card-subtitle">{barrios.length} barrios con actividad</p>
-              </div>
-              <div className="space-y-2">
-                {barrios.slice(0, 15).map((b) => (
-                  <div key={b.barrio} className="flex items-center gap-3">
-                    <span className="w-40 shrink-0 text-sm text-neutral-700 truncate">{b.barrio}</span>
-                    <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
-                      <div
-                        className="h-full bg-primary"
-                        style={{ width: `${Math.round((b.total / maxBarrio) * 100)}%` }}
-                      />
+              <section className="card">
+                <div className="card-header">
+                  <h2 className="card-title">Por barrio</h2>
+                  <p className="card-subtitle">{barrios.length} barrios con actividad</p>
+                </div>
+                <div className="space-y-2">
+                  {barrios.slice(0, 15).map((b) => (
+                    <div key={b.barrio} className="flex items-center gap-3">
+                      <span className="w-40 shrink-0 text-sm text-neutral-700 truncate">{b.barrio}</span>
+                      <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${Math.round((b.total / maxBarrio) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="w-10 text-right text-sm font-bold text-neutral-800">{b.total}</span>
                     </div>
-                    <span className="w-10 text-right text-sm font-bold text-neutral-800">{b.total}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
+                  ))}
+                </div>
+              </section>
+            </div>
 
             {/* Puntos donde se volvio a intervenir varias veces: no es lo mismo
                 hacer tres operativos en tres lugares que tres en la misma esquina. */}
